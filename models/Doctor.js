@@ -2,12 +2,12 @@ const mongoose = require("mongoose");
 const User = require("./User");
 
 const doctorSchema = new mongoose.Schema({
-    specialty: { type: String, required: true },
+    speciality: { type: String, required: true },
     status: {
         type: String,
-        enum: ["valide", "pending"],
+        enum: ['valide', 'pending'],
         required: true,
-        default: "patient",
+        default: 'pending',
     },
     schedule: [
         {

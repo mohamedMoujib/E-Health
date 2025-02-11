@@ -3,7 +3,7 @@ const User = require('./User');
 
 const patientSchema = new mongoose.Schema(
     {
-        satuts: { type: String, default:"active" }, 
+        status: { type: String, default:"active" }, 
     }
 );
 

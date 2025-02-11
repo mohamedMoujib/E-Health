@@ -1,12 +1,17 @@
 const express = require('express');
 const mongoose = require('mongoose');
 require("dotenv").config();
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
-const port = 3000;
-require('dotenv').config();
+app.use(express.json());
+app.use(cors());
+app.use(cookieParser());
+const PORT = process.env.PORT || 3000;
 
-const mongoose = require("mongoose");
 const dbURI = process.env.MONGODB_URI;
 
 mongoose.connect(dbURI)
@@ -26,8 +31,10 @@ mongoose
 app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
+// Routes
+app.use("/api/auth", authRoutes);
 
 // Start the server
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
