@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-// Schéma pour le régime alimentaire
 const dietSchema = new mongoose.Schema(
     {
         medicalFile: { type: mongoose.Schema.Types.ObjectId, ref: 'MedicalFile', required: true }, 
