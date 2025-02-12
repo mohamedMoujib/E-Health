@@ -8,6 +8,6 @@ const medicalFile = new mongoose.Schema(
     { timestamps: true }
 );
 
-const MedicalFile = mongoose.model('Medical', medicalFile);
+const MedicalFile = mongoose.model('MedicalFile', medicalFile);
 
 module.exports = MedicalFile;
