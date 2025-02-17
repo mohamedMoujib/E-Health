@@ -18,6 +18,7 @@ const UserSchema=new mongoose.Schema(
             required: true, 
             default: 'patient' 
         }, 
+        fcmToken: { type: String } // Add this field to store FCM tokens
 
     },
     {timestamps:true}

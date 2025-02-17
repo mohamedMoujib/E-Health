@@ -1,10 +1,16 @@
 const express = require('express');
-const { viewUserDetails, getUsers } = require('../controllers/userController');
+const { viewUserDetails, deleteUserProfile, saveFcmToken, getUnreadNotifications,markNotificationsAsRead } = require('../controllers/userController');
+const {  getUsers } = require('../controllers/userController');
 const { authMiddleware } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
 router.get('/Users',getUsers );
 router.get('/:id', viewUserDetails);
+router.post('/save-fcm-token', saveFcmToken);
+router.post('/notifications/mark-as-read', markNotificationsAsRead);
+router.get('/notifications', getUnreadNotifications);
+
+
 
 module.exports = router;

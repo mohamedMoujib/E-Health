@@ -2,18 +2,21 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const socketIo = require("socket.io");
+require('./scheduler'); 
+
+
 const indexRoutes = require("./routes/indexRoutes");
 const http = require('http');
-const socketIo = require('socket.io');
-
 
 
 require("dotenv").config();
 
 const app = express();
 exports.app = app;
-const server = http.createServer(app);
+const server = require("http").createServer(app);
 const io = socketIo(server);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
@@ -22,7 +25,16 @@ app.use(cookieParser());
 
 const PORT = process.env.PORT || 3000;
 
-const dbURI = process.env.MONGODB_URI;
+
+// Socket.IO connection
+io.on('connection', (socket) => {
+  console.log('New client connected');
+  socket.on('disconnect', () => {
+      console.log('Client disconnected');
+  });
+});
+
+app.set('socketio', io);
 
 // Connect to MongoDB
 mongoose
@@ -39,20 +51,7 @@ mongoose
 app.use("/api", indexRoutes);
 
 
-const chatNamespace = io.of('/chat'); // Définir un namespace '/chat'
 
-chatNamespace.on('connection', (socket) => {
-  console.log('A user connected to /chat namespace');
-  
-  socket.on('sendMessage', (messageData) => {
-    console.log('Message received:', messageData);
-    chatNamespace.emit('receiveMessage', messageData); // Envoi du message à tous les clients dans ce namespace
-  });
-
-  socket.on('disconnect', () => {
-    console.log('A user disconnected from /chat namespace');
-  });
-});
 
 
 // Start the server
