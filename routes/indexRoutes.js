@@ -7,6 +7,7 @@ const medicalFileRoutes = require('./medicalFileRoutes');
 const chatRoutes = require('./chatRoutes');
 const messageRoutes = require('./messageRoutes');
 const articleRoutes = require('./articleRoutes');
+const adminRoutes = require('./adminRoutes');
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -17,5 +18,7 @@ router.use('/medicalFiles', medicalFileRoutes);
 router.use('/chat', chatRoutes);
 router.use('/messages', messageRoutes);
 router.use('/articles', articleRoutes);
+router.use('/admin',adminRoutes);
+
 
 module.exports = router;
