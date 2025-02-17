@@ -3,21 +3,32 @@ const mongoose = require('mongoose');
 require("dotenv").config();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const socketIo = require("socket.io");
+require('./scheduler'); 
+
 
 const indexRoutes = require("./routes/indexRoutes");
 
 const app = express();
 exports.app = app;
+const server = require("http").createServer(app);
+const io = socketIo(server);
+
 app.use(express.json());
 app.use(cors());
 app.use(cookieParser());
 const PORT = process.env.PORT || 3000;
 
-const dbURI = process.env.MONGODB_URI;
 
-mongoose.connect(dbURI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// Socket.IO connection
+io.on('connection', (socket) => {
+  console.log('New client connected');
+  socket.on('disconnect', () => {
+      console.log('Client disconnected');
+  });
+});
+
+app.set('socketio', io);
 
 mongoose
     .connect(process.env.MONGO_URI, {

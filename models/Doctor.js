@@ -14,8 +14,8 @@ const doctorSchema = new mongoose.Schema({
             day: { type: String, required: true },
             periods: [
                 {
-                    startTime: { type: Date, required: true },
-                    endTime: { type: Date, required: true },
+                    startTime: { type: String, required: true },
+                    endTime: { type: String, required: true },
                 },
             ],
         },

@@ -1,6 +1,6 @@
 const Doctor = require("../models/Doctor");
-const { findById } = require("../models/User");
 const MedicalFile = require("../models/MedicalFile");
+const Appointment = require("../models/appointment");
 
 //View Doctor Details by ID
 exports.viewDoctorDetails = async (req , res) => {
@@ -69,3 +69,16 @@ exports.listAllDoctors = async (req, res) => {
       res.status(500).json({ message: error.message });
     }
   };
+
+  // Get Doctor's appointments
+  exports.getDoctorAppointments = async (req, res) => {
+    try {
+        const { doctorId } = req.params;
+        const appointments = await Appointment.find({ Doctor: doctorId })
+            .populate("patient", "firstName lastName phone email")
+            .sort({ date: 1  , time : 1 }); 
+        res.json({ appointments });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+    }
+};

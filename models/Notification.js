@@ -17,7 +17,7 @@ const NotificationSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: ['appointment', 'message', 'medical'],
-    required: true
+    required: false
   },
   isRead: {
     type: Boolean,

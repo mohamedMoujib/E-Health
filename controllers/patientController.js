@@ -1,5 +1,6 @@
 const Patient = require("../models/Patient");
 const MedicalFile = require("../models/MedicalFile");
+const Appointment = require("../models/appointment");
 
 // Get patient by ID
 exports.getPatientById = async (req, res) => {
@@ -52,3 +53,17 @@ exports.getPatientDoctors = async (req, res) => {
     }
 }
 
+//get Patients appointments
+exports.getPatientAppointments = async (req, res) => {
+  try {
+      const { patientId } = req.params;
+
+      const appointments = await Appointment.find({ patient: patientId })
+      .populate("doctor", "name speciality")
+      .sort({ date: 1 , time: 1 });
+
+      res.json({ appointments });
+  } catch (error) {
+      res.status(500).json({ message: "Server error", error });
+  }
+};
