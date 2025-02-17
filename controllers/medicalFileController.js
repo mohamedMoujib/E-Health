@@ -5,7 +5,7 @@ const Note = require("../models/Note");
 const Prescription = require("../models/Prescription");
 const Document = require("../models/Document");
 const Diet = require("../models/Diet");
-
+const Chat = require("../models/Chat");
 exports.searchPatients = async (req, res) => {
     try {
         const query = req.query.query;
@@ -31,9 +31,12 @@ exports.createMedicalFile = async (req, res) => {
         if (existingFile) {
             return res.status(400).json({ message: "Dossier medical deja existant" });
         }
-
+        
+        const chat = new Chat({ doctor: doctorId, patient: patientId });
+        await chat.save();
         const medicalFile = new MedicalFile({ doctor: doctorId, patient: patientId });
         await medicalFile.save();
+        
 
         res.status(201).json({ message: "Dossier medical cree avec succes" });
     } catch (error) {
