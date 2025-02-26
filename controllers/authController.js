@@ -8,56 +8,91 @@ const nodemailer = require("nodemailer");
 
 
 
-const generateToken = (user) => {
-    return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
+const generateAccessToken = (user) => {
+    return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "15m" });
+};
+
+const generateRefreshToken = (user) => {
+    return jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 };
 
 // user registration
 exports.register = async (req, res) => {
     try {
-        const { firstName, lastName, email, password, cin, phone, address, dateOfBirth, image, role, speciality, status, schedule } = req.body;
+        const { firstName, lastName, email, password, cin, phone, address, dateOfBirth, role, speciality } = req.body;
 
         // Check if user exists
         let user = await User.findOne({ email });
-        if (user) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
+        if (user) return res.status(400).json({ message: "User already exists" });
+
         user = await User.findOne({ cin });
-        if (user) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
+        if (user) return res.status(400).json({ message: "User already exists" });
 
-
+        // Create user based on role
         if (role === "doctor") {
-            user = new Doctor({ firstName, lastName, email, password, cin, phone, address, dateOfBirth, image, role, speciality, status, schedule });
+            user = new Doctor({ firstName, lastName, email, password, cin, phone, address, dateOfBirth, role, speciality });
         } else if (role === "patient") {
-            user = new Patient({ firstName, lastName, email, password, cin, phone, address, dateOfBirth, image, role, status });
+            user = new Patient({ firstName, lastName, email, password, cin, phone, address, dateOfBirth, role });
         } else {
-            return res.status(400).json({ message: "Invalide role" })
+            return res.status(400).json({ message: "Invalid role" });
         }
-        await user.save();
-        const token = generateToken(user);
-        res.status(201).json({ user, token });
 
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+        await user.save();
+
+        // Generate tokens
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+
+        // Store refresh token in HTTP-only cookie
+        res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: "Strict" });
+
+        res.status(201).json({ accessToken });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: error.message })
+        res.status(500).json({ message: error.message });
     }
 };
-
 // user login
 
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(400).json({ message: "Invalid email or password" });
-        }
-        const token = generateToken(user);
-        res.json({ user, token });
+
+        if (!user) return res.status(400).json({ message: "Invalid email or password" });
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(400).json({ message: "Invalid password" });
+
+        // Generate tokens
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+
+        // Store refresh token in HTTP-only cookie
+        res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: "Strict" });
+
+        res.json({ accessToken });
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+};
+
+exports.refreshToken = async (req, res) => {
+    try {
+        const refreshToken = req.cookies.refreshToken;
+        if (!refreshToken) return res.status(403).json({ message: "Refresh Token is required" });
+
+        // Verify refresh token
+        jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, decoded) => {
+            if (err) return res.status(403).json({ message: "Invalid Refresh Token" });
+
+            const newAccessToken = generateAccessToken({ _id: decoded.id, role: decoded.role });
+            res.json({ accessToken: newAccessToken });
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
     }
 };
 
@@ -110,7 +145,9 @@ exports.forgetPassword = async (req, res) => {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
         // Create password reset link
-        const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+        const resetLink = `${process.env.FRONTEND_URL}/ResetPassword/${token}`;
+        console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
+
 
         // Send email using Nodemailer
         const transporter = nodemailer.createTransport({
@@ -144,17 +181,27 @@ exports.resetPassword = async (req, res) => {
     try {
         // Verify the token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
         const user = await User.findById(decoded.id);
         if (!user) return res.status(404).json({ message: "Invalid token" });
 
-        // Hash the new password
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-        await user.save();
 
+        user.password = newPassword;
+
+        await user.save();
+        console.log("New password saved:", user.password);
         res.json({ message: "Password reset successful!" });
 
     } catch (error) {
         res.status(400).json({ message: "Invalid or expired token" });
+    }
+};
+
+exports.logout = async (req, res) => {
+    try {
+        res.clearCookie("refreshToken");
+        res.json({ message: "Logged out successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
     }
 };

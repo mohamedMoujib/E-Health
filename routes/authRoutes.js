@@ -1,5 +1,5 @@
 const express = require("express");
-const { register, login, getProfile, updateProfile, forgetPassword, resetPassword } = require("../controllers/authController");
+const { register, login, getProfile, updateProfile, forgetPassword, resetPassword, refreshToken } = require("../controllers/authController");
 const { authMiddleware } = require("../middlewares/authMiddleware");
 const User = require("../models/User");
 const { upload } = require("../lib/cloudinaryConfig");
@@ -13,6 +13,7 @@ router.get("/profile", authMiddleware, getProfile);
 router.put("/profile/:idUser", upload.single("image"), updateProfile);
 router.post("/forget-password", forgetPassword);
 router.post("/reset-password/:token", authMiddleware, resetPassword);
+router.post("/refreshToken", authMiddleware, refreshToken );
 
 
 module.exports = router;

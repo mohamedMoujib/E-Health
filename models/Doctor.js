@@ -11,11 +11,11 @@ const doctorSchema = new mongoose.Schema({
     },
     schedule: [
         {
-            day: { type: String, required: true },
+            day: { type: String, required: false },
             periods: [
                 {
-                    startTime: { type: String, required: true },
-                    endTime: { type: String, required: true },
+                    startTime: { type: String, required: false },
+                    endTime: { type: String, required: false },
                 },
             ],
         },
