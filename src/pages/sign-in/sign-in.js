@@ -101,7 +101,7 @@ export default function SignIn(props) {
 
     try {
       await login(formData);
-      navigate("/dashboard");
+      navigate("/dashboard/Acceuil");
     } catch (error) {
       setErrors((prev) => ({ ...prev, auth: error }));
     }

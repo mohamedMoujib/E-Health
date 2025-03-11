@@ -1,5 +1,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import {useDispatch} from 'react-redux';
+import {setAccesstoken, clearAccessToken} from '../Redux/slices/authSlice';
+
 
 const API_URL = process.env.REACT_APP_API_URL;
 const AuthContext = createContext();
@@ -7,6 +10,7 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
 
   const axiosInstance = axios.create({
     baseURL: API_URL,
@@ -32,8 +36,10 @@ export const AuthProvider = ({ children }) => {
         error.config._retry = true;
         try {
           const refreshResponse = await axios.post(`${API_URL}/auth/refreshToken`, {}, { withCredentials: true });
-          setAccessToken(refreshResponse.data.accessToken);
-          error.config.headers["Authorization"] = `Bearer ${refreshResponse.data.accessToken}`;
+          const newAccessToken = refreshResponse.data.accessToken;
+          setAccessToken(newAccessToken);
+          dispatch(setAccesstoken(newAccessToken));
+          error.config.headers["Authorization"] = `Bearer ${newAccessToken}`;
           return axiosInstance(error.config); // Retry request with new token
         } catch (refreshError) {
           console.error("Session expired. Please log in again.");
@@ -45,25 +51,38 @@ export const AuthProvider = ({ children }) => {
     }
   );
 
+  // Check and refresh token on page load
   useEffect(() => {
-    const checkToken = async () => {
+    const checkAndRefreshToken = async () => {
       try {
-        const response = await axios.post(`${API_URL}/auth/refreshToken`, {}, { withCredentials: true });
-        setAccessToken(response.data.accessToken);
+        console.log("Attempting to refresh token...");
+        const refreshResponse = await axios.post(`${API_URL}/auth/refreshToken`, {}, { withCredentials: true });
+        const newAccessToken = refreshResponse.data.accessToken;
+        console.log("Refresh successful:", refreshResponse.data.accessToken);
+
+        setAccessToken(refreshResponse.data.accessToken); // Set access token from refresh token
+        dispatch(setAccesstoken(newAccessToken));
+
       } catch (error) {
-        console.error("No valid session found. Please log in.");
+        console.error("Refresh failed:", error.response?.data?.message || error.message);
+        console.error("No valid refresh token found. Please log in again.");
         setAccessToken(null);
+        dispatch(clearAccessToken());
       } finally {
         setLoading(false);
       }
     };
-    checkToken();
-  }, []);
+
+    checkAndRefreshToken();
+  }, [dispatch]);
+
 
   const login = async (formData) => {
     try {
       const response = await axios.post(`${API_URL}/auth/login`, formData, { withCredentials: true });
-      setAccessToken(response.data.accessToken);
+      const newAccessToken = response.data.accessToken;
+      setAccessToken(newAccessToken);
+      dispatch(setAccesstoken(newAccessToken));
       return response.data;
     } catch (error) {
       throw error.response?.data?.message || "Authentication failed";
@@ -82,6 +101,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setAccessToken(null);
+    dispatch(clearAccessToken()); // Clear Redux state
     axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true }).catch(() => {});
     window.location.href = "/signin";
   };
