@@ -3,9 +3,9 @@ const Prescription = require('../models/Prescription');
 exports.addPrescription = async (req, res) => {
     try {
         const { medicalFileId } = req.params;
-        const { description } = req.body;
+        const { description ,appointmentId} = req.body;
 
-        const prescription = new Prescription({ medicalFile: medicalFileId, description });
+        const prescription = new Prescription({ medicalFile: medicalFileId, description,appointmentId });
         await prescription.save();
 
         res.status(201).json({ message: "Prescription ajoutée avec succès", prescription });

@@ -4,9 +4,9 @@ const Document = require('../models/Document');
 exports.addDocument = async (req, res) => {
     try {
         const { medicalFileId } = req.params;
-        const { title, image, description } = req.body;
+        const { title, image, description,appointmentId } = req.body;
 
-        const document = new Document({ medicalFile: medicalFileId, title, image, description });
+        const document = new Document({ medicalFile: medicalFileId, title, image, description,appointmentId });
         await document.save();
 
         res.status(201).json({ message: "Document ajouté avec succès", document });

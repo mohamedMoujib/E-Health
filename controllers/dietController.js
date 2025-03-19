@@ -3,9 +3,9 @@ const Diet = require('../models/Diet');
 exports.addDiet = async (req, res) => {
     try {
         const { medicalFileId } = req.params;
-        const { dietType, description } = req.body;
+        const {appointmentId, dietType, description } = req.body;
 
-        const diet = new Diet({ medicalFile: medicalFileId, dietType, description });
+        const diet = new Diet({ medicalFile: medicalFileId, dietType, description ,appointmentId});
         await diet.save();
 
         res.status(201).json({ message: "Régime alimentaire ajouté avec succès", diet });

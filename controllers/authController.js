@@ -7,13 +7,12 @@ const nodemailer = require("nodemailer");
 
 
 
-
 const generateAccessToken = (user) => {
     return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "15m" });
 };
 
 const generateRefreshToken = (user) => {
-    return jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
+    return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 };
 
 // user registration
@@ -38,13 +37,15 @@ exports.register = async (req, res) => {
         }
 
         // Hash password
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(password, salt);
+       
+        ;
+
+
         await user.save();
 
-        // Generate tokens
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user);
+        // // Generate tokens
+        // const accessToken = generateAccessToken(user);
+        // const refreshToken = generateRefreshToken(user);
 
         // Store refresh token in HTTP-only cookie
         res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: "Strict" });
@@ -62,7 +63,9 @@ exports.login = async (req, res) => {
         const user = await User.findOne({ email });
 
         if (!user) return res.status(400).json({ message: "Invalid email or password" });
-
+        console.log("Entered password:", password);
+        console.log("Stored hashed password:", user.password);
+        
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: "Invalid password" });
 
@@ -81,56 +84,183 @@ exports.login = async (req, res) => {
 
 exports.refreshToken = async (req, res) => {
     try {
+        console.log("Received refresh token:", req.cookies.refreshToken);
+
         const refreshToken = req.cookies.refreshToken;
         if (!refreshToken) return res.status(403).json({ message: "Refresh Token is required" });
 
         // Verify refresh token
         jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, decoded) => {
             if (err) return res.status(403).json({ message: "Invalid Refresh Token" });
+            console.log("Decoded refresh token:", decoded);
 
             const newAccessToken = generateAccessToken({ _id: decoded.id, role: decoded.role });
             res.json({ accessToken: newAccessToken });
         });
     } catch (error) {
+        console.error("Error in refresh token endpoint:", error.message);
+
         res.status(500).json({ message: "Server error" });
     }
 };
 
 // 🔹 Get Profile
+// authController.js
 exports.getProfile = async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        res.json(user);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // If user is a doctor, fetch the Doctor model instead
+    if (user.role === 'doctor') {
+      const doctor = await Doctor.findById(req.user.id);
+      return res.json(doctor);
     }
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 
-// 🔹 Update Profile
+
+
+
 exports.updateProfile = async (req, res) => {
-    try {
-        // Vérifie si une image a été téléchargée
-        if (req.file) {
-            req.body.image = req.file.path; // Sauvegarde l'URL de l'image Cloudinary
-        }
-
-        const { idUser } = req.params; // On prend l'id de l'utilisateur dans les paramètres de la requête
-        const user = await User.findByIdAndUpdate(idUser, req.body, { new: true }); // On met à jour l'utilisateur avec l'id correspondant
-
-        if (!user) {
-            return res.status(404).json({ message: "Utilisateur non trouvé" });
-        }
-
-        res.status(200).json({
-            message: "Profil mis à jour avec succès",
-            user
+  try {
+    
+        console.log('Received update request:', req.body);
+       
+        
+  
+    if (req.body.schedule && typeof req.body.schedule === 'string') {
+      try {
+        req.body.schedule = JSON.parse(req.body.schedule);
+        req.body.schedule.forEach(day => {
+          if (day._id) delete day._id;
+          if (day.periods) {
+            day.periods.forEach(period => {
+              if (period._id) delete period._id;
+            });
+          }
         });
-
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+      } catch (error) {
+        console.error("Error parsing schedule JSON:", error);
+      }
     }
+
+    // Separate fields for user and doctor
+    const userFields = {};
+    const doctorFields = {};
+    Object.keys(req.body).forEach(key => {
+      if (['speciality', 'status', 'schedule'].includes(key)) {
+        doctorFields[key] = req.body[key];
+      } else {
+        userFields[key] = req.body[key];
+      }
+    });
+
+    const userRole = req.user.role;
+    let user;
+    let updatedDoctor = null;
+
+    if (userRole === 'doctor') {
+
+      // Update user fields
+      if (Object.keys(userFields).length > 0) {
+        await User.findByIdAndUpdate(
+          req.user.id,
+          { $set: userFields },
+          { new: true, runValidators: true }
+        );
+      }
+
+      // Update doctor fields (e.g. speciality, status, schedule)
+      if (Object.keys(doctorFields).length > 0) {
+        updatedDoctor = await Doctor.findByIdAndUpdate(
+          req.user.id,
+          { $set: doctorFields },
+          { new: true, runValidators: true }
+        );
+
+        console.log("Doctor update result:", updatedDoctor);
+      }
+
+      if (!updatedDoctor) {
+        console.log("Doctor not found after update attempt. Fetching manually...");
+        updatedDoctor = await Doctor.findById(req.user.id);
+      }
+
+      if (!updatedDoctor) {
+        console.log("Doctor still not found.");
+        return res.status(404).json({ message: "Doctor not found" });
+      }
+
+      user = updatedDoctor.toObject ? updatedDoctor.toObject() : updatedDoctor;
+      console.log("Final Doctor object sent to frontend:", user);
+
+    } else {
+      user = await User.findByIdAndUpdate(
+        req.user.id,
+        { $set: req.body },
+        { new: true, runValidators: true }
+      );
+
+      if (!user) {
+        console.log("User not found after update attempt. Fetching manually...");
+        user = await User.findById(req.user.id);
+      }
+    }
+
+    if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
+
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
+    // Remove sensitive data
+    if (user.password) user.password = undefined;
+
+    res.status(200).json({
+      message: "Profil mis à jour avec succès",
+      user: user
+    });
+
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ message: error.message });
+  }
 };
+
+
+
+exports.updateProfileImage = async (req, res) => {
+    try {
+        const idUser = req.user.id;
+        const imageUrl = req.file.path;
+    
+        const updatedUser = await User.findByIdAndUpdate(
+          idUser,
+          { image: imageUrl }, // Update only the image field
+          { new: true, runValidators: true }
+        );
+    
+        if (!updatedUser) {
+          return res.status(404).json({ message: "Utilisateur non trouvé" });
+        }
+    
+        res.status(200).json({
+          message: "Image de profil mise à jour avec succès",
+          user: updatedUser,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Erreur lors de la mise à jour de l'image", error: error.message });
+      }
+    };
 
 
 //forget password
@@ -145,7 +275,7 @@ exports.forgetPassword = async (req, res) => {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
         // Create password reset link
-        const resetLink = `${process.env.FRONTEND_URL}/ResetPassword/${token}`;
+        const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
         console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
 
 

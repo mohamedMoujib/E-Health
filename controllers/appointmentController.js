@@ -4,7 +4,7 @@ const PrivateEngagement = require('../models/privateEngagement');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const admin = require('../firebase'); // Import Firebase Admin SDK
-const Notification = require('../models/Notification'); // Import Notification model
+const { Notification } = require("../models/Notification");
 
 
 
@@ -80,7 +80,6 @@ exports.getAvailableSlots = async (req, res) => {
     }
 };
 
-//bbok appointment
 exports.bookAppointment = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -92,20 +91,16 @@ exports.bookAppointment = async (req, res) => {
         // Vérifier que la date du rendez-vous n'est pas dans le passé
         const appointmentDate = new Date(date);
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Remet à 00:00:00 pour ne comparer que la date
+        today.setHours(0, 0, 0, 0); // Remet à 00:00:00 pour comparer uniquement la date
 
         if (appointmentDate < today) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({ message: "Cannot book an appointment in the past" });
+            throw new Error("Cannot book an appointment in the past");
         }
 
         // Vérifier la disponibilité du créneau horaire
         const availableSlots = await findAvailableSlots(doctorId, date);
         if (!availableSlots.includes(time)) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({ message: "Slot not available" });
+            throw new Error("Slot not available");
         }
 
         // Créer le rendez-vous
@@ -119,47 +114,56 @@ exports.bookAppointment = async (req, res) => {
         });
 
         await appointment.save({ session });
-        await session.commitTransaction();
-        session.endSession();
 
-        // Émettre un événement WebSocket
+        // Émettre un événement WebSocket AVANT le commit
         const io = req.app.get("socketio");
         io.emit("appointmentBooked", appointment);
 
-         // Fetch doctor and patient tokens
-         const doctor = await User.findById(doctorId);
-         const patient = await User.findById(patientId);
- 
-         // Send notifications
-         const message = {
-             notification: {
-                 title: 'New Appointment',
-                 body: `New appointment booked for ${date} at ${time}`
-             },
-             tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
-         };
+        // Fetch doctor and patient tokens
+        const doctor = await User.findById(doctorId);
+        const patient = await User.findById(patientId);
 
-         // Store notifications in the database
-    const notifications = [
-        { user: doctor._id, title: message.notification.title, body: message.notification.body },
-        { user: patient._id, title: message.notification.title, body: message.notification.body }
-      ];
-  
-      await Notification.insertMany(notifications);
- 
-         admin.messaging().sendMulticast(message)
-             .then((response) => {
-                 console.log('Successfully sent message:', response);
-             })
-             .catch((error) => {
-                 console.log('Error sending message:', error);
-             });
+        // // Send notifications
+        // const message = {
+        //     notification: {
+        //         title: 'New Appointment',
+        //         body: `New appointment booked for ${date} at ${time}`
+        //     },
+        //     tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
+        // };
+
+        // // Store notifications in the database
+        // const notifications = [
+        //     { user: doctor._id, title: message.notification.title, body: message.notification.body },
+        //     { user: patient._id, title: message.notification.title, body: message.notification.body }
+        // ];
+        // await Notification.insertMany(notifications);
+
+        // // Envoyer la notification Firebase (ne pas bloquer la transaction)
+        // admin.messaging().sendMulticast(message)
+        //     .then((response) => {
+        //         console.log('Successfully sent message:', response);
+        //     })
+        //     .catch((error) => {
+        //         console.log('Error sending message:', error);
+        //     });
+
+        // ✅ COMMIT après avoir fait toutes les actions nécessaires
+        await session.commitTransaction();
 
         res.status(201).json({ message: "Appointment booked successfully", appointment });
     } catch (error) {
-        await session.abortTransaction();
+        console.error("Error booking appointment:", error);
+
+        // ✅ Annuler la transaction uniquement si elle est encore active
+        if (session.inTransaction()) {
+            await session.abortTransaction();
+        }
+
+        res.status(500).json({ message: error.message || "Server error" });
+    } finally {
+        // ✅ Toujours fermer la session
         session.endSession();
-        res.status(500).json({ message: "Server error", error });
     }
 };
 

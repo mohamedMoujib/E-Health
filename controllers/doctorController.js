@@ -1,7 +1,6 @@
 const Doctor = require("../models/Doctor");
 const MedicalFile = require("../models/MedicalFile");
 const Appointment = require("../models/appointment");
-
 //View Doctor Details by ID
 exports.viewDoctorDetails = async (req , res) => {
     try{
@@ -82,3 +81,37 @@ exports.listAllDoctors = async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 };
+
+// Get Doctor's appointments with specific patient
+const mongoose = require("mongoose");
+
+exports.getDoctorSpecificAppointments = async (req, res) => {
+  try {
+    const doctor = req.user.id; // Récupération de l'ID du docteur depuis le token
+    const { patient } = req.params;
+
+    console.log("Doctor ID:", doctor);
+    console.log("Patient ID:", patient);
+
+    if (!mongoose.Types.ObjectId.isValid(doctor)) {
+      return res.status(400).json({ message: "doctorId invalide" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(patient)) {
+      return res.status(400).json({ message: "patientId invalide" });
+    }
+
+    const appointments = await Appointment.find({
+      doctor: new mongoose.Types.ObjectId(doctor),
+      patient: new mongoose.Types.ObjectId(patient)
+    }).sort({ date: -1, time: -1 });
+
+    console.log("Found Appointments:", appointments);
+    res.json({ appointments });
+
+  } catch (error) {
+    console.error("Erreur lors de la récupération des rendez-vous :", error);
+    res.status(500).json({ message: "Server error", error: error.message || error });
+  }
+};
+

@@ -7,6 +7,11 @@ const documentSchema = new mongoose.Schema(
         title: { type: String, required: true }, 
         image: { type: String, required: true }, 
         description: { type: String },
+         appointmentId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'Appointment',
+                    required: true 
+                }
     },
     { timestamps: true }
 );

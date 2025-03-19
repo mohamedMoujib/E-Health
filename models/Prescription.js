@@ -4,7 +4,13 @@ const prescriptionSchema = new mongoose.Schema(
     {
         medicalFile: { type: mongoose.Schema.Types.ObjectId, ref: 'MedicalFile', required: true }, 
         description: { type: String, required: true }, 
+         appointmentId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'Appointment',
+                    required: true 
+                }
     },
+
     { timestamps: true }
 );
 

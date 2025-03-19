@@ -14,3 +14,4 @@ npm-debug.log*
 Thumbs.db
 
 app.js
+node_modules

@@ -5,6 +5,12 @@ const dietSchema = new mongoose.Schema(
         medicalFile: { type: mongoose.Schema.Types.ObjectId, ref: 'MedicalFile', required: true }, 
         dietType: { type: String, required: true }, 
         description: { type: String }, 
+        appointmentId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Appointment',
+            required: true 
+        }
+        
     },
     { timestamps: true }
 );

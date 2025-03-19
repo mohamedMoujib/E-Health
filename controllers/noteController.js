@@ -4,9 +4,9 @@ const Note = require('../models/Note');
 exports.addNote = async (req, res) => {
     try {
         const { medicalFileId } = req.params;
-        const { titre, content } = req.body;
+        const { titre, content,appointmentId } = req.body;
 
-        const note = new Note({ medicalFile: medicalFileId, titre, content });
+        const note = new Note({ medicalFile: medicalFileId, titre, content,appointmentId });
         await note.save();
 
         res.status(201).json({ message: "Note ajoutée avec succès", note });
