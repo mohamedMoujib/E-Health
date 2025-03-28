@@ -15,6 +15,10 @@ import {
 import { Typography, Divider, Button, Layout, Menu, theme, Dropdown, Avatar, Space } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux'; 
+import { useDispatch } from 'react-redux';
+import { fetchUserProfile } from '../Redux/slices/userSlice';
+
 const { Header, Sider, Content, Footer } = Layout;
 
 // Updated menu items with appropriate icons and links
@@ -29,6 +33,8 @@ const menuItems = [
 ];
 
 const Dashboard = () => {
+  const profileImage = useSelector((state) => state.user.profile?.image);
+const dispatch = useDispatch();
   const [collapsed, setCollapsed] = useState(false);
   const [selectedKey, setSelectedKey] = useState(''); // State to track selected item
   const navigate = useNavigate(); // For programmatic navigation
@@ -40,7 +46,12 @@ const Dashboard = () => {
 
   // Find the selected menu label
   const selectedItem = menuItems.find((item) => item.key === selectedKey)?.label || '';
+ useEffect(() => {
+    dispatch(fetchUserProfile());
+    console.log("Fetching user profile...");
+    console.log("User Profile:", profileImage);
 
+  }, [dispatch]);
   // Function to sync selectedKey with the current route
   useEffect(() => {
     const currentMenuItem = menuItems.find((item) => item.link === location.pathname);
@@ -122,8 +133,10 @@ const Dashboard = () => {
             />
             <Dropdown overlay={profileMenu} trigger={['click']}>
               <Avatar
-                style={{ marginRight: '10px', fontSize: '20px', cursor: 'pointer' }}
-                icon={<UserOutlined />}
+                style={{ marginRight: '10px', fontSize: '40px', cursor: 'pointer',    width: 45, height: 45, borderRadius: "50%"  
+              }}
+                icon={!profileImage ? <UserOutlined /> : null}
+                src={profileImage}
               />
             </Dropdown>
           </Space>

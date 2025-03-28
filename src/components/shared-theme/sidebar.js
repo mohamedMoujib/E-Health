@@ -30,8 +30,14 @@ import EventIcon from "@mui/icons-material/Event"; // Rendez-vous
 import ArticleIcon from "@mui/icons-material/Article"; // Articles
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday"; // Agenda
 import ChatIcon from "@mui/icons-material/Chat"; // Chats
-
+import { useSelector } from "react-redux";
+import { fetchUserProfile } from "../../Redux/slices/userSlice";
+import { useDispatch } from "react-redux";
+import { useEffect } from "react";
 const Sidebar = ({open, setOpen}) => {
+    const userProfile = useSelector((state) => state.user.profile);
+    const dispatch = useDispatch();
+
   const { logout } = useAuth(); // Get logout function from AuthContext
   const [submenuOpen, setSubmenuOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -47,6 +53,14 @@ const Sidebar = ({open, setOpen}) => {
       console.error("Logout failed:", error.message);
     }
   };
+  useEffect(() => {
+    dispatch(fetchUserProfile());
+    console.log("Fetching user profile...");
+    console.log("User Profile:", userProfile);
+
+  }, [dispatch]);
+  console.log("User Profile:", userProfile);
+
   // Dropdown menu logic
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget); // Set anchorEl to the clicked element
@@ -302,13 +316,14 @@ const Sidebar = ({open, setOpen}) => {
 
           {/* User Menu */}
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton
-              color="inherit"
-              onClick={handleMenuOpen} // Open dropdown on click
-              sx={{ mr: 1 }}
-            >
-              <Avatar alt="User Avatar" src="/path-to-avatar.jpg" sx={{ bgcolor: "#fff", color: "#000" }} />
-            </IconButton>
+          <IconButton color="inherit" onClick={handleMenuOpen} sx={{ mr: 1 }}>
+  <img 
+    src={userProfile.image || "/default-avatar.png"} 
+    alt="User Avatar"
+    style={{ width: 50, height: 50, borderRadius: "50%" }} 
+  />
+</IconButton>
+
 
             {/* Dropdown Menu */}
             <Menu

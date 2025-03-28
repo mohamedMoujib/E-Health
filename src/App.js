@@ -15,7 +15,8 @@ import Articles from "./pages/Articles"; // Ensure correct path
 import Agenda from "./pages/Agenda"; // Ensure correct path
 import Chats from "./pages/Chats"; // Ensure correct path
 import Profile from "./pages/Profile"; 
-
+import PatientPage from "./pages/PatientPage";
+import AppointmentManagement from "./pages/AppointmentManagement";
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true); // State for sidebar toggle
 
@@ -36,14 +37,16 @@ function App() {
             {/* Nested routes for dashboard */}
             <Route index element={<Acceuil />} /> {/* Default route for /dashboard */}
             <Route path="Acceuil" element={<Acceuil />} />
-            <Route path="Patients" element={<Patients />} />
+            <Route path="Patients/*" element={<Patients />} />
+            <Route path="Patients/:patientId" element={<PatientPage/>}/>
+            <Route path="Patients/:patientId/appointments" element={<AppointmentManagement/>}/>
             <Route path="Rendez-vous" element={<RendezVous />} />
             <Route path="Articles" element={<Articles />} />
             <Route path="Agenda" element={<Agenda />} />
             <Route path="Chats" element={<Chats />} />
             <Route path="Profile" element={<Profile />} />
              
-             
+
 
           </Route>
         </Route>
