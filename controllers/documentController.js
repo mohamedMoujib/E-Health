@@ -1,20 +1,28 @@
 const Document = require('../models/Document');
 
-// Ajouter un document à un dossier médical
 exports.addDocument = async (req, res) => {
     try {
-        console.log("Données reçues:", req.body);
-        console.log("Fichier reçu:", req.file);
-
+        const { medicalFileId } = req.params;
         const { title, description, appointmentId } = req.body;
-        const image = req.file ? req.file.path : null; // Vérifie si l’image est reçue
 
-        if (!image) {
-            return res.status(400).json({ message: "L'image est requise" });
+        // Vérifier si un fichier a été téléchargé
+        if (!req.file) {
+            return res.status(400).json({ message: "Aucun fichier n'a été téléchargé" });
         }
 
-        const document = new Document({ title, image, description, appointmentId });
-        await document.save();
+        // Récupérer l'URL du fichier stocké sur Cloudinary
+        const fileUrl = req.file.path;
+
+        // Créer et sauvegarder le document
+        const document = new Document({ 
+            medicalFile: medicalFileId, 
+            title, 
+            file: fileUrl, 
+            description, 
+            appointmentId 
+        });
+
+            await document.save();
 
         res.status(201).json({ message: "Document ajouté avec succès", document });
     } catch (error) {
@@ -22,7 +30,6 @@ exports.addDocument = async (req, res) => {
         res.status(500).json({ message: "Erreur serveur", error: error.message });
     }
 };
-
 
 
 // Obtenir les détails d'un document

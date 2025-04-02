@@ -123,7 +123,91 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+const users = {}; // Un objet pour stocker les OTP et leur expiration (clé = email)
+ 
+ exports.requestReset = async (req, res) => {
+     const { email } = req.body; // Récupération de l'email depuis le corps de la requête
+     if (!email) return res.status(400).json({ message: "Email requis" }); // Vérifie que l'email est fourni
+ 
+     // Génération d'un code OTP à 4 chiffres
+     const otp = Math.floor(1000 + Math.random() * 9000);
+     // Sauvegarde du OTP avec une expiration de 5 minutes (300000ms)
+     users[email] = { otp, expiresAt: Date.now() + 300000 };
+ 
+     const transporter = nodemailer.createTransport({
+         service: "gmail",
+         auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+     });
+ 
+     // Contenu de l'email envoyé
+     const mailOptions = {
+         from: process.env.EMAIL_USER,
+         to: email,
+         subject: "Code de vérification",
+         text: `Votre code de vérification est : ${otp}`,
+     };
+ 
+     // Envoi de l'email
+     transporter.sendMail(mailOptions, (error) => {
+         if (error)
+             return res.status(500).json({ message: "Erreur d'envoi de l'email" });
+         res.json({ message: "Code envoyé avec succès" }); // Réponse en cas de succès
+     });
+ };
+ 
+// Vérification de l'OTP
+exports.verifyOtp = (req, res) => {
+  const { email, otp } = req.body;
+  if (!users[email] || users[email].expiresAt < Date.now()) {
+      return res.status(400).json({ message: "OTP expiré ou invalide" });
+  }
 
+  if (users[email].otp != otp) {
+      return res.status(400).json({ message: "Code incorrect" });
+  }
+
+  const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: "10m" });
+  res.json({ message: "Code validé", token });
+};
+
+exports.resetPasswordPatient = async (req, res) => {
+  try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+          return res.status(400).json({ message: "Token et nouveau mot de passe requis" });
+      }
+
+      // Vérification du token JWT
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const email = decoded.email;
+
+      // Hachage du mot de passe
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Mise à jour dans la base de données
+      const patient = await Patient.findOneAndUpdate(
+          { email },
+          { password: hashedPassword },
+          { new: true }
+      );
+
+      if (!patient) {
+          return res.status(404).json({ message: "Patient non trouvé" });
+      }
+
+      res.status(200).json({ message: "Mot de passe changé avec succès" });
+
+  } catch (error) {
+      if (error.name === "JsonWebTokenError") {
+          return res.status(401).json({ message: "Token invalide" });
+      } else if (error.name === "TokenExpiredError") {
+          return res.status(401).json({ message: "Token expiré" });
+      }
+
+      res.status(500).json({ message: "Erreur serveur" });
+  }
+};
 
 
 
