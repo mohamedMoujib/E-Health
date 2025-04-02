@@ -5,12 +5,11 @@ const documentSchema = new mongoose.Schema(
     {
         medicalFile: { type: mongoose.Schema.Types.ObjectId, ref: 'MedicalRecord', required: true }, 
         title: { type: String, required: true }, 
-        image: { type: String, required: true }, 
+        file: { type: String, required: true }, 
         description: { type: String },
          appointmentId: {
                     type: mongoose.Schema.Types.ObjectId,
-                    ref: 'Appointment',
-                    required: true 
+                    ref: 'Appointment'
                 }
     },
     { timestamps: true }

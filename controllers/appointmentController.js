@@ -193,7 +193,6 @@ exports.UpdateAppointmentStatus = async (req, res) => {
     try {
         const { appointmentId}= req.params;
         const { status} = req.body;
-
         const allowedStatus = ["pending", "confirmed", "canceled"];
         if(!allowedStatus.includes(status)) {
             return res.status(400).json({message: "Invalid status value"});
@@ -201,29 +200,29 @@ exports.UpdateAppointmentStatus = async (req, res) => {
         const appointment = await Appointment.findByIdAndUpdate(appointmentId, { status }, { new: true });
             if(!appointment) return res.status(404).json({ message: "Appointment not found"});
 
-            // Emit event
-        const io = req.app.get('socketio');
-        io.emit('appointmentStatusUpdated', appointment);
+        //      Emit event
+        // const io = req.app.get('socketio');
+        // io.emit('appointmentStatusUpdated', appointment);
          // Fetch doctor and patient tokens
-         const doctor = await User.findById(appointment.doctor);
-         const patient = await User.findById(appointment.patient);
+        //  const doctor = await User.findById(appointment.doctor);
+        //  const patient = await User.findById(appointment.patient);
  
          // Send notifications
-         const message = {
-             notification: {
-                 title: 'Appointment Status Updated',
-                 body: `Your appointment status has been updated to ${status}`
-             },
-             tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
-         };
+        //  const message = {
+        //      notification: {
+        //          title: 'Appointment Status Updated',
+        //          body: `Your appointment status has been updated to ${status}`
+        //      },
+        //      tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
+        //  };
  
-         admin.messaging().sendMulticast(message)
-             .then((response) => {
-                 console.log('Successfully sent message:', response);
-             })
-             .catch((error) => {
-                 console.log('Error sending message:', error);
-             });
+        //  admin.messaging().sendMulticast(message)
+        //      .then((response) => {
+        //          console.log('Successfully sent message:', response);
+        //      })
+        //      .catch((error) => {
+        //          console.log('Error sending message:', error);
+        //      });
  
 
         res.json({ message: "Appointment status updated successfully", appointment });
@@ -285,22 +284,22 @@ exports.RescheduleAppointment = async (req, res) => {
         session.endSession();
 
         // Emit event via WebSocket
-        const io = req.app.get("socketio");
-        io.emit("appointmentRescheduled", appointment);
+        // const io = req.app.get("socketio");
+        // io.emit("appointmentRescheduled", appointment);
 
          // Fetch doctor and patient tokens
          const doctor = await User.findById(appointment.doctor);
          const patient = await User.findById(appointment.patient);
  
          // Send notifications
-         const message = {
-             notification: {
-                 title: 'Appointment Rescheduled',
-                 body: `Your appointment has been rescheduled to ${newDate} at ${newTime}`
-             },
-             tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
-         };
- 
+        //  const message = {
+        //      notification: {
+        //          title: 'Appointment Rescheduled',
+        //          body: `Your appointment has been rescheduled to ${newDate} at ${newTime}`
+        //      },
+        //      tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
+        //  };
+  
          admin.messaging().sendMulticast(message)
              .then((response) => {
                  console.log('Successfully sent message:', response);
