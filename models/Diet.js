@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const dietSchema = new mongoose.Schema(
     {
-        medicalFile: { type: mongoose.Schema.Types.ObjectId, ref: 'MedicalFile', required: true }, 
+        medicalFile: { type: mongoose.Schema.Types.ObjectId, ref: 'MedicalFile', required: false }, 
         dietType: { type: String, required: true }, 
         description: { type: String }, 
         appointmentId: {

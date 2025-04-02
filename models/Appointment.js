@@ -8,7 +8,7 @@ const appointmentSchema = new Schema({
     time: { type: String, required: true }, 
     status: {
         type: String,
-        enum: ["pending", "confirmed", "canceled"],
+        enum: ["pending", "confirmed", "canceled","completed"],
         default: "pending",
         required: true
     },

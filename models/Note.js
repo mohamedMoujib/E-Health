@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const noteSchema = new mongoose.Schema(
     {
-        medicalFile: { type: mongoose.Schema.Types.ObjectId, ref: 'MedicalFile', required: true }, 
+        medicalFile: { type: mongoose.Schema.Types.ObjectId, ref: 'MedicalFile', required: false }, 
         titre: { type: String, required: true },
         content: { type: String}, 
          appointmentId: {

@@ -5,7 +5,7 @@ const { authMiddleware } = require('../middlewares/authMiddleware');
 const router = express.Router();
 
 router.get('/search', searchPatients);
-router.get('/:id', getPatientById);
+router.get('/:id',authMiddleware, getPatientById);
 router.get('/:id/doctors', getPatientDoctors);
 router.get('/:patientId/appointments', getPatientAppointments);
 

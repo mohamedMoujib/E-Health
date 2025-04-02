@@ -5,7 +5,10 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const admin = require('../firebase'); // Import Firebase Admin SDK
 const { Notification } = require("../models/Notification");
-
+const Note = require("../models/Note");
+const Prescription = require("../models/Prescription");
+const Diet = require("../models/Diet");
+const Document = require("../models/Document");
 
 
 // Generate time slots
@@ -35,6 +38,7 @@ exports.generateTimeSlots = (periods, interval = 20) => {
 // Find available slots
 const findAvailableSlots = async (doctorId, date) => {
     // Find doctor
+    console.log("Doctor ID:", doctorId);
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) throw new Error("Doctor not found");
 
@@ -70,9 +74,8 @@ const findAvailableSlots = async (doctorId, date) => {
 // get available slots
 exports.getAvailableSlots = async (req, res) => {
     try {
-        const { doctorId } = req.params;
-        const { date } = req.query;
-
+        const  doctorId  = req.user?.id;
+        const { date } = req.params;
         const availableSlots = await findAvailableSlots(doctorId, date);
         res.json({ availableSlots });
     } catch (error) {
@@ -85,7 +88,7 @@ exports.bookAppointment = async (req, res) => {
     session.startTransaction();
 
     try {
-        const { doctorId } = req.params;
+        const doctorId  = req.user?.id;
         const { date, time, type, patientId } = req.body;
 
         // Vérifier que la date du rendez-vous n'est pas dans le passé
@@ -110,7 +113,7 @@ exports.bookAppointment = async (req, res) => {
             date,
             time,
             type,
-            status: "confirmed"
+            status: "pending"
         });
 
         await appointment.save({ session });
@@ -194,7 +197,7 @@ exports.UpdateAppointmentStatus = async (req, res) => {
         const { appointmentId}= req.params;
         const { status} = req.body;
 
-        const allowedStatus = ["pending", "confirmed", "canceled"];
+        const allowedStatus = ["pending", "confirmed", "canceled","completed"];
         if(!allowedStatus.includes(status)) {
             return res.status(400).json({message: "Invalid status value"});
         }
@@ -209,21 +212,21 @@ exports.UpdateAppointmentStatus = async (req, res) => {
          const patient = await User.findById(appointment.patient);
  
          // Send notifications
-         const message = {
-             notification: {
-                 title: 'Appointment Status Updated',
-                 body: `Your appointment status has been updated to ${status}`
-             },
-             tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
-         };
+        //  const message = {
+        //      notification: {
+        //          title: 'Appointment Status Updated',
+        //          body: `Your appointment status has been updated to ${status}`
+        //      },
+        //      tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
+        //  };
  
-         admin.messaging().sendMulticast(message)
-             .then((response) => {
-                 console.log('Successfully sent message:', response);
-             })
-             .catch((error) => {
-                 console.log('Error sending message:', error);
-             });
+        //  admin.messaging().sendMulticast(message)
+            //  .then((response) => {
+            //      console.log('Successfully sent message:', response);
+            //  })
+            //  .catch((error) => {
+            //      console.log('Error sending message:', error);
+            //  });
  
 
         res.json({ message: "Appointment status updated successfully", appointment });
@@ -316,3 +319,94 @@ exports.RescheduleAppointment = async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 };
+
+// Get all appointments with notes , documets , perscriptions , diets
+exports.getAppointmentsWithDetailsByPatient = async (req, res) => {
+    try {
+        const { patientId } = req.params;
+
+        // Vérifier si patientId est un ObjectId valide
+        if (!mongoose.Types.ObjectId.isValid(patientId)) {
+            return res.status(400).json({ message: "ID patient invalide" });
+        }
+
+        // 1️⃣ Récupérer les rendez-vous du patient, triés du plus récent au plus ancien
+        const appointments = await Appointment.find({ patient: patientId }).sort({ date: -1 });
+
+        if (appointments.length === 0) {
+            return res.status(404).json({ message: "Aucun rendez-vous trouvé pour ce patient" });
+        }
+
+        // 2️⃣ Construire les données complètes pour chaque rendez-vous
+        const detailedAppointments = await Promise.all(
+            appointments.map(async (appointment) => {
+                const appointmentId = appointment._id;
+
+                // Récupérer les notes, prescriptions, régimes et documents liés à ce rendez-vous
+                const [notes, prescriptions, diets, documents] = await Promise.all([
+                    Note.find({ appointmentId }),
+                    Prescription.find({ appointmentId }),
+                    Diet.find({ appointmentId }),
+                    Document.find({ appointmentId }),
+                ]);
+
+                return {
+                    ...appointment.toObject(), // Convertir le document Mongoose en objet JS
+                    notes,
+                    prescriptions,
+                    diets,
+                    documents,
+                };
+            })
+        );
+
+        res.json(detailedAppointments);
+    } catch (error) {
+        console.error("Erreur lors de la récupération des rendez-vous :", error);
+        res.status(500).json({ message: "Erreur serveur", error });
+    }
+};
+//get appointment details
+exports.getAppointmentDetails = async (req, res) => {
+    try {
+        const { appointmentId } = req.params;
+
+        // Validate appointmentId
+        if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+            return res.status(400).json({ message: "Invalid appointment ID" });
+        }
+
+        // Find the appointment and populate patient details
+        const appointment = await Appointment.findById(appointmentId).populate('patient');
+
+        if (!appointment) {
+            return res.status(404).json({ message: "Appointment not found" });
+        }
+
+        // Fetch associated medical records concurrently
+        const [notes, prescriptions, dietPlans, documents] = await Promise.all([
+            Note.find({ appointmentId }),
+            Prescription.find({ appointmentId }),
+            Diet.find({ appointmentId }),
+            Document.find({ appointmentId })
+        ]);
+
+        // Construct detailed appointment object
+        const detailedAppointment = {
+            ...appointment.toObject(), // Convert Mongoose document to plain object
+            notes,
+            prescriptions,
+            dietPlans,
+            documents
+        };
+
+        res.json(detailedAppointment);
+    } catch (error) {
+        console.error("Error retrieving appointment details:", error);
+        res.status(500).json({ 
+            message: "Server error", 
+            error: error.message 
+        });
+    }
+};
+
