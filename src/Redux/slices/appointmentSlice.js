@@ -90,6 +90,25 @@ export const bookAppointment = createAsyncThunk(
     }
   }
 );
+export const getDoctorAppointments = createAsyncThunk(
+  "appointments/getDoctorAppointments",
+  async (_, { rejectWithValue, getState }) => { // <-- Fix parameters here
+    try {
+      const accessToken = getState().auth.accessToken;
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL}/doctors/appointments`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      console.log("API Response:", response.data);
+
+      return response.data.appointments;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Erreur serveur");
+    }
+  }
+);
 
 const appointmentSlice = createSlice({
   name: 'appointments',
@@ -138,6 +157,19 @@ const appointmentSlice = createSlice({
       })
       .addCase(bookAppointment.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(getDoctorAppointments.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(getDoctorAppointments.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        // Make sure you're setting the array directly
+        state.appointments = action.payload; 
+        state.error = null;
+      })
+      .addCase(getDoctorAppointments.rejected, (state, action) => {
+        state.status = 'failed';
         state.error = action.payload;
       });
   },

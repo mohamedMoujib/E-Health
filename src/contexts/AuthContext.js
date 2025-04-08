@@ -81,6 +81,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.post(`${API_URL}/auth/login`, formData, { withCredentials: true });
       const newAccessToken = response.data.accessToken;
+      const role = response.data.role;
+      if (role !== "doctor") {
+        throw new Error(`You are trying to log in as a doctor, but this account is a ${role}.`);
+      }
       setAccessToken(newAccessToken);
       dispatch(setAccesstoken(newAccessToken));
       return response.data;

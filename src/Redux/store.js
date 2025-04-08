@@ -4,6 +4,7 @@ import userReducer from './slices/userSlice';
 import patientsReducer from './slices/patientsSlice';
 import appointmentReducer from './slices/appointmentSlice';
 import medicalFileReducer from './slices/medicalFileSlice';
+import chatReducer from './slices/chatSlice';
 // Allow non-serializable values for redux-persist actions
 
 export const store = configureStore({
@@ -14,6 +15,8 @@ export const store = configureStore({
     patients:patientsReducer,
     appointments:appointmentReducer,
     medicalFile: medicalFileReducer,
+    chat: chatReducer,
+
 
   },
  

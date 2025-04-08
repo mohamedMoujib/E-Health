@@ -185,7 +185,7 @@ useEffect(() => {
     <>
       <Card sx={{ 
         borderRadius: 3, 
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
         height: '100%',
         display: 'flex',
         flexDirection: 'column'
@@ -204,7 +204,7 @@ useEffect(() => {
                 fontSize: { xs: '1.5rem', md: '2rem' }
               }}
             >
-              Liste des Patients
+              Patients
             </Typography>
             
             <Tooltip title="Add new patient">

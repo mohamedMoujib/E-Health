@@ -2,7 +2,6 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
 
-
 // 1. Add Note to a Medical File
 export const addNote = createAsyncThunk(
   'medicalFile/addNote',
@@ -35,34 +34,36 @@ export const addPrescription = createAsyncThunk(
   }
 );
 
-// 3. Add Document to a Medical File
+// In your medicalFileSlice.js
 export const addDocument = createAsyncThunk(
-    "medicalFile/addDocument",
-    async ({ title, file, description, appointmentId }, { rejectWithValue }) => {
-      try {
-        const formData = new FormData();
-        formData.append("title", title);
-        formData.append("description", description);
-        formData.append("appointmentId", appointmentId);
-        if (file) {
-          formData.append("image", file); // Ajouter l’image
+  'medicalFile/addDocument',
+  async ({ file, title, description, appointmentId }, { rejectWithValue }) => {
+    try {
+      // Create FormData object for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('appointmentId', appointmentId);
+
+      // Make API request with FormData
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/medicalFiles/document`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
         }
-  
-        console.log("Données envoyées à l'API :", formData);
-  
-        const response = await axios.post(
-          `${process.env.REACT_APP_API_URL}/medicalFiles/document/`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
-  
-        return response.data.document;
-      } catch (error) {
-        console.error("Erreur API:", error.response?.data);
-        return rejectWithValue(error.response?.data || { message: "Erreur inconnue" });
-      }
+      );
+      fetchAppointmentDetails(formData.appointmentId);
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || 'Failed to upload document');
     }
-  );
+  }
+);
   
 
 // 4. Add Diet to a Medical File
@@ -106,6 +107,20 @@ export const updateAppointmentStatus = createAsyncThunk(
         console.error('Update Appointment Error:', error.response?.data || error.message);
 
         return rejectWithValue(error.response.data);
+      }
+    }
+  );
+  export const rescheduleAppointment = createAsyncThunk(
+    'medicalFile/rescheduleAppointment',
+    async ({ appointmentId, newDate, newTime }, { rejectWithValue }) => {
+      try {
+        const response = await axios.put(
+          `${process.env.REACT_APP_API_URL}/appointments/${appointmentId}/reschedule`,
+          { newDate, newTime }
+        );
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data || error.message);
       }
     }
   );
@@ -211,6 +226,21 @@ const medicalFileSlice = createSlice({
       .addCase(updateAppointmentStatus.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(rescheduleAppointment.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(rescheduleAppointment.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the current appointment in state
+        if (state.currentAppointment?._id === action.payload.appointment._id) {
+          state.currentAppointment = action.payload.appointment;
+        }
+      })
+      .addCase(rescheduleAppointment.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to reschedule appointment';
       });
     
   },

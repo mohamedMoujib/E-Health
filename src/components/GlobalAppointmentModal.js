@@ -17,6 +17,11 @@ import {
   Fade,
   createTheme,
   ThemeProvider,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  FormHelperText,
 } from "@mui/material";
 import { Calendar as MuiCalendar } from "react-calendar";
 import "react-calendar/dist/Calendar.css";
@@ -27,8 +32,9 @@ import EventIcon from "@mui/icons-material/Event";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import PersonIcon from "@mui/icons-material/Person";
 import { useDispatch, useSelector } from "react-redux";
-import { bookAppointment, getAvailableSlots, fetchAppointmentsByPatient } from "../../Redux/slices/appointmentSlice"; // Adjust path
+import { bookAppointment, getAvailableSlots, fetchAppointmentsByPatient } from "../Redux/slices/appointmentSlice"; // Adjust path
 
 // Custom theme with enhanced colors
 const theme = createTheme({
@@ -66,43 +72,43 @@ const theme = createTheme({
 
 // Styled components
 const StyledCalendar = styled(MuiCalendar)(() => ({
-    width: "100%",
-    maxWidth: "1000px",
-    margin: "0 auto",
-    border: "none",
-    borderRadius: theme.shape.borderRadius,
-    padding: theme.spacing(2),
-    boxShadow: "none",
-    fontFamily: theme.typography.fontFamily,
-    ".react-calendar__month-view__weekdays": {
-      display: "grid",
-      gridTemplateColumns: "repeat(7, 1fr)", // Ensure 7 columns for weekdays
-      textAlign: "center",
-    },
-    ".react-calendar__month-view__days": {
-      display: "grid",
-      gridTemplateColumns: "repeat(7, 1fr)", // Ensure 7 columns for days
-      textAlign: "center",
-    },
-    ".react-calendar__tile": {
-      padding: "16px 6px ",
-      borderRadius: "12px",
-      fontWeight: "bold",
-      color: theme.palette.text.primary,
-      "&:hover": {
-        backgroundColor: theme.palette.primary.light,
-        color: theme.palette.primary.contrastText,
-      },
-    },
-    ".react-calendar__tile--active": {
-      backgroundColor: theme.palette.primary.main,
+  width: "100%",
+  maxWidth: "1000px",
+  margin: "0 auto",
+  border: "none",
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(2),
+  boxShadow: "none",
+  fontFamily: theme.typography.fontFamily,
+  ".react-calendar__month-view__weekdays": {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)", // Ensure 7 columns for weekdays
+    textAlign: "center",
+  },
+  ".react-calendar__month-view__days": {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)", // Ensure 7 columns for days
+    textAlign: "center",
+  },
+  ".react-calendar__tile": {
+    padding: "16px 6px ",
+    borderRadius: "12px",
+    fontWeight: "bold",
+    color: theme.palette.text.primary,
+    "&:hover": {
+      backgroundColor: theme.palette.primary.light,
       color: theme.palette.primary.contrastText,
-      "&:hover": {
-        backgroundColor: theme.palette.primary.dark,
-      },
     },
-  }));
-  
+  },
+  ".react-calendar__tile--active": {
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText,
+    "&:hover": {
+      backgroundColor: theme.palette.primary.dark,
+    },
+  },
+}));
+
 const TimeSlotButton = styled(Button)(({ selected }) => ({
   padding: theme.spacing(1, 2),
   borderRadius: "12px",
@@ -118,7 +124,18 @@ const TimeSlotButton = styled(Button)(({ selected }) => ({
   },
 }));
 
-  
+const StyledSelect = styled(Select)(() => ({
+  borderRadius: "12px",
+  "& .MuiOutlinedInput-notchedOutline": {
+    borderColor: theme.palette.divider,
+  },
+  "&:hover .MuiOutlinedInput-notchedOutline": {
+    borderColor: theme.palette.primary.light,
+  },
+  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+    borderColor: theme.palette.primary.main,
+  },
+}));
 
 const StepContainer = styled(Paper)(() => ({
   padding: theme.spacing(3),
@@ -161,7 +178,11 @@ const ConfirmButton = styled(Button)(() => ({
   },
 }));
 
-export default function AppointmentModal({ patientId, open, onClose }) {
+export default function GlobalAppointmentModal({ patients = [], open, onClose, onAppointmentAdded }) {
+  // Console log to ensure patients are being passed in
+  console.log("Patients list received:", patients);
+
+  const [selectedPatientId, setSelectedPatientId] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(null);
   const [appointmentType, setAppointmentType] = useState("Consultation");
@@ -176,6 +197,7 @@ export default function AppointmentModal({ patientId, open, onClose }) {
       // Reset the component state when modal closes
       setTimeout(() => {
         setSummary(false);
+        setSelectedPatientId("");
         setSelectedDate(new Date());
         setSelectedTime(null);
         setAppointmentType("Consultation");
@@ -184,26 +206,21 @@ export default function AppointmentModal({ patientId, open, onClose }) {
     }
   }, [open]);
 
-  // Fetch available slots when the date changes
+  // Fetch available slots when the date changes AND a patient is selected
   useEffect(() => {
-    if (selectedDate && open) {
-      // Debug: Log the date being sent to the API
+    if (selectedDate && open && selectedPatientId) {
       console.log("Fetching slots for date:", format(selectedDate, "yyyy-MM-dd"));
+      console.log("Selected patient ID:", selectedPatientId);
       
       dispatch(getAvailableSlots(format(selectedDate, "yyyy-MM-dd")))
         .unwrap()
         .then((response) => {
-          // Debug: Log the entire response
           console.log("API Response:", response);
           
-          // Make sure you're accessing the correct property in the response
-          // If the response structure is { availableSlots: [...] }
           const slots = response.availableSlots || response;
           
-          // Debug: Log the slots after extraction
           console.log("Extracted slots:", slots);
           
-          // Ensure slots is an array before updating state
           if (Array.isArray(slots)) {
             setAvailableSlots(slots);
           } else {
@@ -216,26 +233,41 @@ export default function AppointmentModal({ patientId, open, onClose }) {
           setAvailableSlots([]); // Reset to empty array on error
         });
     }
-  }, [dispatch, selectedDate, open]);
+  }, [dispatch, selectedDate, selectedPatientId, open]);
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
     setSelectedTime(null); // Reset time when date changes
   };
 
+  const handlePatientChange = (event) => {
+    console.log("Patient selected:", event.target.value);
+    setSelectedPatientId(event.target.value);
+    // Reset time when patient changes
+    setSelectedTime(null);
+  };
+
   const handleConfirm = () => {
     if (summary) {
+      // Get patient details from the list
+      const selectedPatient = patients.find(patient => patient.id === selectedPatientId);
+      
       const appointmentData = {
         date: format(selectedDate, "yyyy-MM-dd"),
         time: selectedTime,
         type: appointmentType,
-        patientId,
+        patientId: selectedPatientId,
       };
+      
+      console.log("Submitting appointment:", appointmentData);
+      
       dispatch(bookAppointment(appointmentData))
         .unwrap()
         .then(() => {
           console.log("Rendez-vous confirmé :", appointmentData);
-          dispatch(fetchAppointmentsByPatient(patientId)); 
+          dispatch(fetchAppointmentsByPatient(selectedPatientId)); 
+          onAppointmentAdded();
+
           onClose(); // Close modal
         })
         .catch((err) => {
@@ -260,16 +292,17 @@ export default function AppointmentModal({ patientId, open, onClose }) {
     return format(date, "EEEE d MMMM yyyy", { locale: fr });
   };
 
-  // Custom close handler that ensures clean state on close
-  const handleClose = () => {
-    onClose();
-  };
+  // Get selected patient details
+  const selectedPatient = patients.find(patient => patient.id === selectedPatientId) || {};
+  
+  // Debug log for the selected patient
+  console.log("Selected patient:", selectedPatient);
 
   return (
     <ThemeProvider theme={theme}>
       <Dialog
         open={open}
-        onClose={handleClose}
+        onClose={onClose}
         maxWidth="sm"
         fullWidth
         PaperProps={{
@@ -294,16 +327,59 @@ export default function AppointmentModal({ patientId, open, onClose }) {
           <Box display="flex" alignItems="center">
             <EventIcon sx={{ mr: 1.5 }} />
             <Typography variant="h5" fontWeight="bold">
-              {summary ? "Résumé du Rendez-vous" : "Prendre un Rendez-vous"}
+              {summary ? "Résumé du Rendez-vous" : "Planifier un Rendez-vous"}
             </Typography>
           </Box>
-          <IconButton onClick={handleClose} sx={{ color: "white" }} aria-label="close">
+          <IconButton onClick={onClose} sx={{ color: "white" }} aria-label="close">
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           {!summary ? (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <StepContainer elevation={0}>
+                <StepTitle>
+                  <PersonIcon fontSize="medium" />
+                  <Typography variant="h6" fontWeight="bold">
+                    Sélectionnez un patient
+                  </Typography>
+                </StepTitle>
+                
+                {/* Patient selection dropdown with explicit value handling */}
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="patient-select-label">Patient</InputLabel>
+                  <StyledSelect
+                    labelId="patient-select-label"
+                    id="patient-select"
+                    value={selectedPatientId}
+                    onChange={handlePatientChange}
+                    label="Patient"
+                  >
+                    {patients && patients.length > 0 ? (
+                      patients.map((patient) => (
+                        <MenuItem key={patient._id} value={patient._id}>
+                          {patient.firstName} {patient.lastName}
+                        </MenuItem>
+                      ))
+                    ) : (
+                      <MenuItem disabled value="">
+                        Aucun patient disponible
+                      </MenuItem>
+                    )}
+                  </StyledSelect>
+                  {!selectedPatientId && (
+                    <FormHelperText>Veuillez sélectionner un patient</FormHelperText>
+                  )}
+                </FormControl>
+                
+                {/* Debug info - can be removed in production */}
+                {selectedPatientId && (
+                  <Typography variant="caption" color="primary" sx={{ mt: 1, display: "block" }}>
+                    Patient sélectionné: ID {selectedPatientId}
+                  </Typography>
+                )}
+              </StepContainer>
+              
               <StepContainer elevation={0}>
                 <StepTitle>
                   <EventIcon fontSize="medium" />
@@ -328,6 +404,7 @@ export default function AppointmentModal({ patientId, open, onClose }) {
                   maxDate={addDays(new Date(), 360)}
                 />
               </StepContainer>
+              
               <StepContainer elevation={0}>
                 <StepTitle>
                   <AccessTimeIcon fontSize="medium" />
@@ -340,19 +417,20 @@ export default function AppointmentModal({ patientId, open, onClose }) {
                     {formatDateDisplay(selectedDate)}
                   </Typography>
                 </Box>
-                {loading && (
+                {!selectedPatientId ? (
+                  <Typography variant="body2" color="error" sx={{ textAlign: "center" }}>
+                    Veuillez d'abord sélectionner un patient
+                  </Typography>
+                ) : loading ? (
                   <Typography variant="body2" sx={{ textAlign: "center" }}>
                     Chargement des créneaux disponibles...
                   </Typography>
-                )}
-                {error && (
+                ) : error ? (
                   <Typography variant="body2" color="error" sx={{ textAlign: "center" }}>
                     Erreur lors de la récupération des créneaux.
                   </Typography>
-                )}
-                {!loading && !error && (
+                ) : (
                   <Box display="flex" flexWrap="wrap" gap={1.5} mt={2}>
-                    {console.log("Rendering with availableSlots:", availableSlots)}
                     {Array.isArray(availableSlots) && availableSlots.length > 0 ? (
                       availableSlots.map((slot) => (
                         <TimeSlotButton
@@ -371,6 +449,7 @@ export default function AppointmentModal({ patientId, open, onClose }) {
                   </Box>
                 )}
               </StepContainer>
+              
               <StepContainer elevation={0}>
                 <StepTitle>
                   <LocalHospitalIcon fontSize="medium" />
@@ -403,9 +482,10 @@ export default function AppointmentModal({ patientId, open, onClose }) {
                   />
                 </RadioGroup>
               </StepContainer>
+              
               <ConfirmButton
                 onClick={handleConfirm}
-                disabled={!selectedTime}
+                disabled={!selectedPatientId || !selectedTime}
                 endIcon={<CheckCircleIcon />}
               >
                 Continuer
@@ -419,6 +499,17 @@ export default function AppointmentModal({ patientId, open, onClose }) {
                 </Typography>
                 <Divider sx={{ my: 2 }} />
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <PersonIcon sx={{ color: "primary.main", mr: 2 }} />
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Patient
+                      </Typography>
+                      <Typography variant="body1" fontWeight="medium">
+                        {selectedPatient.firstName} {selectedPatient.lastName}
+                      </Typography>
+                    </Box>
+                  </Box>
                   <Box sx={{ display: "flex", alignItems: "center" }}>
                     <EventIcon sx={{ color: "primary.main", mr: 2 }} />
                     <Box>
