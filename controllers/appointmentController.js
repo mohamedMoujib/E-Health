@@ -88,28 +88,50 @@ exports.bookAppointment = async (req, res) => {
     session.startTransaction();
 
     try {
-        const doctorId  = req.user?.id;
-        const { date, time, type, patientId } = req.body;
+        const { date, time, type, doctorId, patientId } = req.body;
+        const userId = req.user?.id;
+        const userRole = req.user?.role;
+
+        let finalDoctorId;
+        let finalPatientId;
+
+        if (userRole === "patient") {
+            // Si c'est un patient, il doit fournir un doctorId
+            if (!doctorId) {
+                throw new Error("Doctor ID is required for patients");
+            }
+            finalDoctorId = doctorId;
+            finalPatientId = userId; // Le patient est celui qui réserve
+        } else if (userRole === "doctor") {
+            // Si c'est un docteur, il doit fournir un patientId
+            if (!patientId) {
+                throw new Error("Patient ID is required for doctors");
+            }
+            finalDoctorId = userId; // Le docteur est celui qui réserve
+            finalPatientId = patientId;
+        } else {
+            throw new Error("Unauthorized role");
+        }
 
         // Vérifier que la date du rendez-vous n'est pas dans le passé
         const appointmentDate = new Date(date);
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Remet à 00:00:00 pour comparer uniquement la date
+        today.setHours(0, 0, 0, 0);
 
         if (appointmentDate < today) {
             throw new Error("Cannot book an appointment in the past");
         }
 
         // Vérifier la disponibilité du créneau horaire
-        const availableSlots = await findAvailableSlots(doctorId, date);
+        const availableSlots = await findAvailableSlots(finalDoctorId, date);
         if (!availableSlots.includes(time)) {
             throw new Error("Slot not available");
         }
 
         // Créer le rendez-vous
         const appointment = new Appointment({
-            doctor: doctorId,
-            patient: patientId,
+            doctor: finalDoctorId,
+            patient: finalPatientId,
             date,
             time,
             type,
@@ -118,58 +140,27 @@ exports.bookAppointment = async (req, res) => {
 
         await appointment.save({ session });
 
-        // Émettre un événement WebSocket AVANT le commit
+        // Émettre un événement WebSocket
         const io = req.app.get("socketio");
-        io.emit("appointmentBooked", appointment);
+        io.to(finalDoctorId).emit("appointmentBooked", appointment);
+        io.to(finalPatientId).emit("appointmentBooked", appointment);
 
-        // Fetch doctor and patient tokens
-        const doctor = await User.findById(doctorId);
-        const patient = await User.findById(patientId);
-
-        // // Send notifications
-        // const message = {
-        //     notification: {
-        //         title: 'New Appointment',
-        //         body: `New appointment booked for ${date} at ${time}`
-        //     },
-        //     tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
-        // };
-
-        // // Store notifications in the database
-        // const notifications = [
-        //     { user: doctor._id, title: message.notification.title, body: message.notification.body },
-        //     { user: patient._id, title: message.notification.title, body: message.notification.body }
-        // ];
-        // await Notification.insertMany(notifications);
-
-        // // Envoyer la notification Firebase (ne pas bloquer la transaction)
-        // admin.messaging().sendMulticast(message)
-        //     .then((response) => {
-        //         console.log('Successfully sent message:', response);
-        //     })
-        //     .catch((error) => {
-        //         console.log('Error sending message:', error);
-        //     });
-
-        // ✅ COMMIT après avoir fait toutes les actions nécessaires
+        // ✅ COMMIT après toutes les actions
         await session.commitTransaction();
 
         res.status(201).json({ message: "Appointment booked successfully", appointment });
     } catch (error) {
         console.error("Error booking appointment:", error);
 
-        // ✅ Annuler la transaction uniquement si elle est encore active
         if (session.inTransaction()) {
             await session.abortTransaction();
         }
 
         res.status(500).json({ message: error.message || "Server error" });
     } finally {
-        // ✅ Toujours fermer la session
         session.endSession();
     }
 };
-
 
 // DeleteAppointment
 exports.DeleteAppointment = async (req, res) => {
@@ -241,6 +232,8 @@ exports.RescheduleAppointment = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
+    let isTransactionCommitted = false;
+
     try {
         const { appointmentId } = req.params;
         const { newDate, newTime } = req.body;
@@ -251,32 +244,24 @@ exports.RescheduleAppointment = async (req, res) => {
         today.setHours(0, 0, 0, 0); // On ignore l'heure pour comparer uniquement la date
 
         if (rescheduleDate < today) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({ message: "Cannot reschedule an appointment to a past date" });
+            throw new Error("Cannot reschedule an appointment to a past date");
         }
 
         // Vérifier si le rendez-vous existe
         const appointment = await Appointment.findById(appointmentId).session(session);
         if (!appointment) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(404).json({ message: "Appointment not found" });
+            throw new Error("Appointment not found");
         }
 
         // Vérifier la disponibilité du médecin
         const availableSlots = await findAvailableSlots(appointment.doctor, newDate);
         if (!availableSlots) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({ message: "Doctor not available on this date" });
+            throw new Error("Doctor not available on this date");
         }
 
         // Vérifier si l'horaire est disponible
         if (!availableSlots.includes(newTime)) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({ message: "Slot not available" });
+            throw new Error("Slot not available");
         }
 
         // Mettre à jour le rendez-vous
@@ -284,41 +269,50 @@ exports.RescheduleAppointment = async (req, res) => {
         appointment.time = newTime;
         await appointment.save({ session });
 
+        // Commit the transaction if everything goes well
         await session.commitTransaction();
-        session.endSession();
+        isTransactionCommitted = true;
 
         // Emit event via WebSocket
         // const io = req.app.get("socketio");
         // io.emit("appointmentRescheduled", appointment);
 
-         // Fetch doctor and patient tokens
-         const doctor = await User.findById(appointment.doctor);
-         const patient = await User.findById(appointment.patient);
- 
-         // Send notifications
-        //  const message = {
-        //      notification: {
-        //          title: 'Appointment Rescheduled',
-        //          body: `Your appointment has been rescheduled to ${newDate} at ${newTime}`
-        //      },
-        //      tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
-        //  };
-  
-         admin.messaging().sendMulticast(message)
-             .then((response) => {
-                 console.log('Successfully sent message:', response);
-             })
-             .catch((error) => {
-                 console.log('Error sending message:', error);
-             });
+        // Fetch doctor and patient tokens
+        const doctor = await User.findById(appointment.doctor);
+        const patient = await User.findById(appointment.patient);
+
+        // Send notifications
+        // const message = {
+        //     notification: {
+        //         title: 'Appointment Rescheduled',
+        //         body: `Your appointment has been rescheduled to ${newDate} at ${newTime}`
+        //     },
+        //     tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
+        // };
+
+        // admin.messaging().sendMulticast(message)
+        //     .then((response) => {
+        //         console.log('Successfully sent message:', response);
+        //     })
+        //     .catch((error) => {
+        //         console.log('Error sending message:', error);
+        //     });
 
         res.json({ message: "Appointment rescheduled successfully", appointment });
     } catch (error) {
-        await session.abortTransaction();
+        if (!isTransactionCommitted) {
+            await session.abortTransaction();
+        }
         session.endSession();
-        res.status(500).json({ message: "Server error", error });
+        res.status(500).json({ message: error.message || "Server error", error });
+    } finally {
+        if (!isTransactionCommitted) {
+            session.endSession();
+        }
     }
 };
+
+
 
 // Get all appointments with notes , documets , perscriptions , diets
 exports.getAppointmentsWithDetailsByPatient = async (req, res) => {

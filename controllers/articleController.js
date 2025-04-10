@@ -4,7 +4,8 @@ const Doctor = require('../models/Doctor');
 
 exports.createArticle = async (req, res) => {
     try {
-        const { idDoctor, categorie, titre, description, image } = req.body;
+        const idDoctor = req.user?.id;
+        const {  categorie, titre, description, image } = req.body;
         if (!idDoctor || !categorie || !titre || !description) {
             return res.status(400).json({ message: 'Veuillez remplir tous les champs' });
         }
@@ -29,7 +30,12 @@ exports.createArticle = async (req, res) => {
 // Récupérer tous les articles avec les informations du médecin
 exports.getArticles = async (req, res) => {
     try {
-        const articles = await Article.find();
+        const articles = await Article.find()
+        .populate({
+            path: 'idDoctor',
+            select: 'firstName lastName image',
+            model: 'Doctor',
+          });
         res.status(200).json(articles);
     } catch (error) {
         res.status(400).json({ message: "Erreur lors de la récupération des articles", error: error.message });
@@ -100,6 +106,20 @@ exports.getArticlesByDoctor = async (req, res) => {
         res.status(500).json({ message: error.message }); // Gérer les erreurs
     }
 };
+exports.getMyArticles = async (req, res) => {
+    try {
+        const articles = await Article.find({ idDoctor: req.user?.id }).populate('idDoctor');
+
+        if (!articles || articles.length === 0) {
+            return res.status(404).json({ message: 'Aucun article trouvé pour ce médecin' });
+        }
+
+        res.status(200).json(articles); // Retourner les articles trouvés
+    } catch (error) {
+        res.status(500).json({ message: error.message }); // Gérer les erreurs
+    }
+};
+
 
 // Récupérer les articles par catégorie
 exports.getArticlesByCategorie = async (req, res) => {
