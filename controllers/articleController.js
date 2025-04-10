@@ -4,14 +4,18 @@ const Doctor = require('../models/Doctor');
 
 exports.createArticle = async (req, res) => {
     try {
-        const { idDoctor, categorie, titre, description, image } = req.body;
+        const { idDoctor, categorie, titre, description } = req.body;
+        const image = req.file?.path;
+
         if (!idDoctor || !categorie || !titre || !description) {
             return res.status(400).json({ message: 'Veuillez remplir tous les champs' });
         }
-        if (!await Doctor.findById(idDoctor)) {
+
+        const doctor = await Doctor.findById(idDoctor);
+        if (!doctor) {
             return res.status(404).json({ message: 'Médecin non trouvé' });
         }
-        
+
         const article = new Article({
             idDoctor,
             categorie,
@@ -19,6 +23,7 @@ exports.createArticle = async (req, res) => {
             description,
             image,
         });
+
         await article.save();
         res.status(201).json(article); 
     } catch (error) {

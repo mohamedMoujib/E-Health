@@ -3,7 +3,7 @@ const router = express.Router();
 
 const { createArticle, getArticles, getArticleById, updateArticle, deleteArticle,getArticlesByDoctor,getArticlesByCategorie, createArticleFile } = require('../controllers/articleController');
 const { uploadArticle } = require('../lib/cloudinaryConfig');router.get('/', getArticles);
-router.post('/', createArticle);
+router.post('/',uploadArticle.single('image'), createArticle);
 router.get('/:id', getArticleById);
 router.put('/:id', updateArticle);
 router.delete('/:id', deleteArticle);

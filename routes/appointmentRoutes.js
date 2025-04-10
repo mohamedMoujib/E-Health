@@ -1,9 +1,9 @@
 const express = require('express');
-const { getAvailableSlots , bookAppointment , DeleteAppointment, UpdateAppointmentStatus, RescheduleAppointment, getAppointmentsWithDetails, getAppointmentsWithDetailsByPatient, getAppointmentDetails} = require('../controllers/appointmentController');
+const { getAvailableSlots , bookAppointment , DeleteAppointment, UpdateAppointmentStatus, RescheduleAppointment, getAppointmentsWithDetailsByPatient, getAppointmentDetails, getAvailableSlotsForPatient} = require('../controllers/appointmentController');
 const { authMiddleware } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
-
+router.get('/:doctorId/slotsDoctor',authMiddleware,getAvailableSlotsForPatient);
 router.get('/:date/slots',authMiddleware,  getAvailableSlots);
 router.post('/book',authMiddleware,  bookAppointment);
 router.delete('/:appointmentId/delete', DeleteAppointment);
