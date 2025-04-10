@@ -176,8 +176,6 @@ exports.bookAppointment = async (req, res) => {
     }
 };
 
-
-
 // DeleteAppointment
 exports.DeleteAppointment = async (req, res) => {
     try {
@@ -301,7 +299,7 @@ exports.RescheduleAppointment = async (req, res) => {
         // const message = {
         //     notification: {
         //         title: 'Appointment Rescheduled',
-        //         body: Your appointment has been rescheduled to ${newDate} at ${newTime}
+        //         body: `Your appointment has been rescheduled to ${newDate} at ${newTime}`
         //     },
         //     tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
         // };
@@ -327,6 +325,8 @@ exports.RescheduleAppointment = async (req, res) => {
         }
     }
 };
+
+
 
 // Get all appointments with notes , documets , perscriptions , diets
 exports.getAppointmentsWithDetailsByPatient = async (req, res) => {

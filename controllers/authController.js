@@ -76,7 +76,7 @@ exports.login = async (req, res) => {
         // Store refresh token in HTTP-only cookie
         res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: "Strict" });
 
-        res.json({ accessToken });
+        res.json({ accessToken , role: user.role, });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

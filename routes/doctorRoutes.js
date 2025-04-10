@@ -5,10 +5,11 @@ const { authMiddleware } = require('../middlewares/authMiddleware');
 const router = express.Router();
 
 router.get('/search',authMiddleware, searchDoctors);
+router.get('/appointments',authMiddleware, getDoctorAppointments);
+
 router.get('/:id', viewDoctorDetails);
 router.get('/', listAllDoctors); 
 router.get('/:id/patients',authMiddleware, getDoctorPatients); 
-router.get('/:id/appointments', getDoctorAppointments);
 router.get('/patientAppointments/:patient',authMiddleware, getDoctorSpecificAppointments);
 
 module.exports = router;

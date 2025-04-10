@@ -4,7 +4,7 @@ const documentController = require('../controllers/documentController');
 const { uploadDocument } = require('../lib/cloudinaryConfig');
 
 
-router.post('/:medicalFileId', uploadDocument.single('file'), documentController.addDocument);
+router.post('/', uploadDocument.single('file'), documentController.addDocument);
 router.get('/:medicalFileId/:itemId', documentController.getDocumentDetails);
 router.get('/:id', documentController.getDocumentsbyPatient);
 module.exports = router;

@@ -2,7 +2,6 @@ const Document = require('../models/Document');
 
 exports.addDocument = async (req, res) => {
     try {
-        const { medicalFileId } = req.params;
         const { title, description, appointmentId } = req.body;
 
         // Vérifier si un fichier a été téléchargé
@@ -15,7 +14,6 @@ exports.addDocument = async (req, res) => {
 
         // Créer et sauvegarder le document
         const document = new Document({ 
-            medicalFile: medicalFileId, 
             title, 
             file: fileUrl, 
             description, 

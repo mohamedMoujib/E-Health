@@ -72,9 +72,9 @@ exports.listAllDoctors = async (req, res) => {
   // Get Doctor's appointments
   exports.getDoctorAppointments = async (req, res) => {
     try {
-        const { doctorId } = req.params;
-        const appointments = await Appointment.find({ Doctor: doctorId })
-            .populate("patient", "firstName lastName phone email")
+        const  doctorId  = req.user?.id;
+        const appointments = await Appointment.find({ doctor: doctorId })
+            .populate("patient", "firstName lastName phone email image")
             .sort({ date: 1  , time : 1 }); 
         res.json({ appointments });
     } catch (error) {
