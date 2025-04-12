@@ -13,7 +13,7 @@ import {
   MessageOutlined,
 } from '@ant-design/icons';
 import { Typography, Divider, Button, Layout, Menu, theme, Dropdown, Avatar, Space } from 'antd';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux'; 
 import { useDispatch } from 'react-redux';
@@ -34,7 +34,7 @@ const menuItems = [
 
 const Dashboard = () => {
   const profileImage = useSelector((state) => state.user.profile?.image);
-const dispatch = useDispatch();
+  const dispatch = useDispatch();
   const [collapsed, setCollapsed] = useState(false);
   const [selectedKey, setSelectedKey] = useState(''); // State to track selected item
   const navigate = useNavigate(); // For programmatic navigation
@@ -46,12 +46,13 @@ const dispatch = useDispatch();
 
   // Find the selected menu label
   const selectedItem = menuItems.find((item) => item.key === selectedKey)?.label || '';
- useEffect(() => {
+  
+  useEffect(() => {
     dispatch(fetchUserProfile());
     console.log("Fetching user profile...");
     console.log("User Profile:", profileImage);
-
   }, [dispatch]);
+  
   // Function to sync selectedKey with the current route
   useEffect(() => {
     const currentMenuItem = menuItems.find((item) => item.link === location.pathname);
@@ -81,8 +82,21 @@ const dispatch = useDispatch();
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <Sider trigger={null} collapsible collapsed={collapsed}>
+      {/* Sidebar - Fixed position */}
+      <Sider 
+        trigger={null} 
+        collapsible 
+        collapsed={collapsed}
+        style={{
+          overflow: 'auto',
+          height: '100vh',
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 10
+        }}
+      >
         <div className="demo-logo-vertical" />
         <Menu
           theme="dark"
@@ -102,9 +116,10 @@ const dispatch = useDispatch();
           }))}
         />
       </Sider>
-      {/* Main Layout */}
-      <Layout>
-        {/* Header */}
+      
+      {/* Main Layout - Adjusted with margin-left to account for fixed sidebar */}
+      <Layout style={{ marginLeft: collapsed ? '80px' : '200px', transition: 'margin-left 0.2s' }}>
+        {/* Header - Fixed position */}
         <Header
           style={{
             display: 'flex',
@@ -112,6 +127,11 @@ const dispatch = useDispatch();
             justifyContent: 'space-between',
             padding: '0 16px',
             background: colorBgContainer,
+            position: 'sticky',
+            top: 0,
+            zIndex: 9,
+            width: '100%',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.09)'
           }}
         >
           {/* Left Section: Collapse Icon + Selected Item Name */}
@@ -133,27 +153,34 @@ const dispatch = useDispatch();
             />
             <Dropdown overlay={profileMenu} trigger={['click']}>
               <Avatar
-                style={{ marginRight: '10px', fontSize: '40px', cursor: 'pointer',    width: 45, height: 45, borderRadius: "50%"  
-              }}
+                style={{ 
+                  marginRight: '10px', 
+                  fontSize: '40px', 
+                  cursor: 'pointer',
+                  width: 45, 
+                  height: 45, 
+                  borderRadius: "50%"  
+                }}
                 icon={!profileImage ? <UserOutlined /> : null}
                 src={profileImage}
               />
             </Dropdown>
           </Space>
         </Header>
+        
         {/* Content */}
         <Content
           style={{
             margin: '24px 16px',
             padding: 24,
             minHeight: 280,
-            // background: colorBgContainer,
             borderRadius: borderRadiusLG,
           }}
         >
           {/* Render child components here */}
           <Outlet />
         </Content>
+        
         <Footer>
           {/* Footer Typography */}
           <Typography
@@ -169,6 +196,7 @@ const dispatch = useDispatch();
           </Typography>
         </Footer>
       </Layout>
+      
       {/* Custom Styles */}
       <style>
         {`

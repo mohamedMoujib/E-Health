@@ -26,6 +26,7 @@ import SendIcon from '@mui/icons-material/Send';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import CloseIcon from '@mui/icons-material/Close'; // Added for removing selected image
 import { format } from 'date-fns';
 import { useSelector, useDispatch } from 'react-redux';
 
@@ -36,7 +37,6 @@ import {
   sendMessage,
   createChat,
   sendImageMessage
-
 } from '../Redux/slices/chatSlice';
 import { setSelectedChat } from '../Redux/slices/chatSlice';
 import PatientSelectionDialog from '../components/PatientSelectionDialog';
@@ -184,6 +184,31 @@ const ContactsList = styled(List)(({ theme }) => ({
   height: '100%'
 }));
 
+// New component for image preview
+const ImagePreviewContainer = styled(Box)(({ theme }) => ({
+  position: 'relative',
+  width: 80,
+  height: 80,
+  marginRight: theme.spacing(1),
+  borderRadius: 8,
+  overflow: 'hidden',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+  border: `1px solid ${alpha('#0A192F', 0.1)}`
+}));
+
+const ImagePreviewCloseButton = styled(IconButton)(({ theme }) => ({
+  position: 'absolute',
+  top: -8,
+  right: -8,
+  backgroundColor: theme.palette.background.paper,
+  padding: 4,
+  '&:hover': {
+    backgroundColor: theme.palette.action.hover
+  },
+  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  zIndex: 2
+}));
+
 const Chats = () => {
   const dispatch = useDispatch();
   const messagesEndRef = useRef(null);
@@ -216,6 +241,10 @@ const Chats = () => {
   const [messageInput, setMessageInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [patientDialogOpen, setPatientDialogOpen] = useState(false);
+  
+  // New state for image preview
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
 
   const fileInputRef = useRef(null);
 
@@ -237,18 +266,40 @@ const Chats = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!messageInput.trim() || !selectedChat) return;
-  
-    dispatch(sendMessage({
-      chatId: selectedChat._id,
-      content: messageInput,
-      type: 'text'
-    }));
-  
-    setMessageInput('');
+    
+    if ((!messageInput.trim() && !selectedImage) || !selectedChat) return;
+    
+    if (selectedImage) {
+      // Send image message
+      dispatch(sendImageMessage({
+        chatId: selectedChat._id,
+        file: selectedImage
+      }));
+
+      
+      // Clear image preview
+      setSelectedImage(null);
+      setImagePreviewUrl('');
+
+    }
+
+    
+    if (messageInput.trim()) {
+      // Send text message
+      dispatch(sendMessage({
+        chatId: selectedChat._id,
+        content: messageInput,
+        type: 'text'
+      }));
+      // dispatch(fetchChats());
+
+      setMessageInput('');
+
+    }
+    dispatch(fetchChats());
+
   };
 
-  
   const handlePatientSelect = (patient) => {
     if (!patient._id) {
       alert("Invalid patient selection.");
@@ -293,7 +344,7 @@ const Chats = () => {
       return `Yesterday at ${format(messageDate, 'HH:mm')}`;
     }
     else {
-      return format(messageDate, 'MMM d, yyyy at HH:mm');
+      return format(messageDate, 'MMM d, yyyy , HH:mm');
     }
   };
 
@@ -310,10 +361,12 @@ const Chats = () => {
     const file = e.target.files[0];
     if (!file || !selectedChat) return;
     
-    dispatch(sendImageMessage({
-      chatId: selectedChat._id,
-      file
-    }));
+    // Set the selected image and create a preview URL
+    setSelectedImage(file);
+    
+    // Create a URL for preview
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreviewUrl(previewUrl);
     
     // Reset file input
     e.target.value = '';
@@ -321,6 +374,11 @@ const Chats = () => {
 
   const handleAttachClick = () => {
     fileInputRef.current.click();
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreviewUrl('');
   };
 
   return (
@@ -487,14 +545,10 @@ const Chats = () => {
                     <Typography variant="h6" fontWeight={600}>
                       {getParticipantName(selectedChat.patient)}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Online
-                    </Typography>
+                   
                   </Box>
                 </Box>
-                <IconButton>
-                  <MoreVertIcon />
-                </IconButton>
+                
               </ChatHeader>
 
               <MessageList sx={{ height: 'calc(100% - 144px)' }}>
@@ -552,39 +606,66 @@ const Chats = () => {
               <InputArea
                 component="form"
                 onSubmit={handleSendMessage}
+                sx={{ 
+                  flexDirection: 'column', 
+                  alignItems: 'stretch',
+                }}
               >
-                <IconButton 
-                  sx={{ mr: 1 }}
-                  onClick={handleAttachClick}
-                >
-                  <AttachFileIcon />
-                </IconButton>
-                <MessageInput
-                  fullWidth
-                  variant="outlined"
-                  size="small"
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  placeholder="Type your message..."
-                  sx={{ flexGrow: 1, mr: 1 }}
-                />
-                <IconButton
-                  color="primary"
-                  type="submit"
-                  disabled={!messageInput.trim()}
-                  sx={{
-                    backgroundColor: '#0A192F',
-                    color: 'white',
-                    '&:hover': {
-                      backgroundColor: alpha('#0A192F', 0.9)
-                    },
-                    '&:disabled': {
-                      backgroundColor: alpha('#0A192F', 0.5)
-                    }
-                  }}
-                >
-                  <SendIcon />
-                </IconButton>
+                {/* Image preview area */}
+                {imagePreviewUrl && (
+                  <Box sx={{ display: 'flex', mb: 2, px: 1 }}>
+                    <ImagePreviewContainer>
+                      <img 
+                        src={imagePreviewUrl} 
+                        alt="Selected image" 
+                        style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'cover' 
+                        }} 
+                      />
+                      <ImagePreviewCloseButton size="small" onClick={handleRemoveImage}>
+                        <CloseIcon fontSize="small" />
+                      </ImagePreviewCloseButton>
+                    </ImagePreviewContainer>
+                  </Box>
+                )}
+                
+                {/* Message input area */}
+                <Box sx={{ display: 'flex', width: '100%', alignItems: 'center' }}>
+                  <IconButton 
+                    sx={{ mr: 1 }}
+                    onClick={handleAttachClick}
+                  >
+                    <AttachFileIcon />
+                  </IconButton>
+                  <MessageInput
+                    fullWidth
+                    variant="outlined"
+                    size="small"
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    placeholder={selectedImage ? "Add a caption or send without text..." : "Type your message..."}
+                    sx={{ flexGrow: 1, mr: 1 }}
+                  />
+                  <IconButton
+                    color="primary"
+                    type="submit"
+                    disabled={!messageInput.trim() && !selectedImage}
+                    sx={{
+                      backgroundColor: '#0A192F',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: alpha('#0A192F', 0.9)
+                      },
+                      '&:disabled': {
+                        backgroundColor: alpha('#0A192F', 0.5)
+                      }
+                    }}
+                  >
+                    <SendIcon />
+                  </IconButton>
+                </Box>
               </InputArea>
             </>
               
