@@ -416,7 +416,7 @@ const MedicalFileCard = ({ patientId }) => {
                 {doc.title}
               </Typography>
               <Link
-                href={doc.url}
+                href={doc.file}
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{ display: "flex", color: "#f57c00" }}

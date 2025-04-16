@@ -18,28 +18,44 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { useSelector, useDispatch } from 'react-redux';
-
-// Import the action
 import { fetchPatientsList } from '../Redux/slices/patientsSlice';
+import { fetchChats } from '../Redux/slices/chatSlice';
 
 const PatientSelectionDialog = ({ open, onClose, onSelectPatient }) => {
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Get patients data
   const patientsState = useSelector((state) => state.patients);
-
   const patientsList = Array.isArray(patientsState?.list) ? patientsState.list : [];
-  const patientsStatus = patientsState?.status || 'idle';
+  const patientsLoading = patientsState?.status === 'loading';
   const patientsError = patientsState?.error || null;
+  
+  // Get chats data
+  const chatsState = useSelector((state) => state.chat);
+  const chatsList = Array.isArray(chatsState?.chats) ? chatsState.chats : [];
+  const chatsLoading = chatsState?.loading?.chats || false;
+  const chatsError = chatsState?.error?.chats || null;
 
   useEffect(() => {
     if (open) {
       dispatch(fetchPatientsList());
+      dispatch(fetchChats());
     }
   }, [open, dispatch]);
 
-  // Only filter if we have a real array to work with
-  const filteredPatients = patientsList.filter(patient => {
+  // Filter out patients you already have chats with
+  const getPatientsWithoutChats = () => {
+    const patientIdsWithChats = chatsList.map(chat => chat.patient?._id);
+    return patientsList.filter(patient => 
+      patient && !patientIdsWithChats.includes(patient._id)
+    );
+  };
+
+  const patientsWithoutChats = getPatientsWithoutChats();
+
+  // Apply search filter
+  const filteredPatients = patientsWithoutChats.filter(patient => {
     if (!patient) return false;
     const searchLower = searchQuery.toLowerCase();
     const firstName = patient.firstName || '';
@@ -57,8 +73,13 @@ const PatientSelectionDialog = ({ open, onClose, onSelectPatient }) => {
       return;
     }
     onSelectPatient(patient);
+    dispatch(fetchChats()); // 
     onClose();
   };
+
+  // Combined loading state
+  const isLoading = patientsLoading || chatsLoading;
+  const error = patientsError || chatsError;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -86,17 +107,17 @@ const PatientSelectionDialog = ({ open, onClose, onSelectPatient }) => {
           }}
         />
         
-        {patientsStatus === 'loading' ? (
+        {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
             <CircularProgress size={24} />
           </Box>
-        ) : patientsError ? (
+        ) : error ? (
           <Typography color="error" sx={{ p: 2 }}>
-            {patientsError || 'Error loading patients'}
+            {error || 'Error loading data'}
           </Typography>
         ) : filteredPatients.length === 0 ? (
           <Typography sx={{ p: 2, color: 'text.secondary', textAlign: 'center' }}>
-            {patientsList.length === 0 ? 'No patients available' : 'No matching patients found'}
+            {patientsWithoutChats.length === 0 ? 'No patients available without existing chats' : 'No matching patients found'}
           </Typography>
         ) : (
           <List sx={{ pt: 0 }}>

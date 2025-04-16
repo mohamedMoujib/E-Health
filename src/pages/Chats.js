@@ -6,14 +6,12 @@ import {
   TextField,
   IconButton,
   Avatar,
-  Divider,
   List,
   ListItem,
   ListItemAvatar,
   ListItemText,
   CircularProgress,
   Badge,
-  Tooltip,
   Button,
   Dialog,
   DialogTitle,
@@ -25,8 +23,7 @@ import { styled, alpha } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import SearchIcon from '@mui/icons-material/Search';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import CloseIcon from '@mui/icons-material/Close'; // Added for removing selected image
+import CloseIcon from '@mui/icons-material/Close';
 import { format } from 'date-fns';
 import { useSelector, useDispatch } from 'react-redux';
 
@@ -36,19 +33,23 @@ import {
   fetchMessages, 
   sendMessage,
   createChat,
-  sendImageMessage
+  sendImageMessage,
+  initializeSocket,
+  newMessageReceived,
+  updateChatList,
+  setupSocketListeners,
 } from '../Redux/slices/chatSlice';
 import { setSelectedChat } from '../Redux/slices/chatSlice';
 import PatientSelectionDialog from '../components/PatientSelectionDialog';
 
-// Custom styled components
+// All your styled components remain the same
 const GlassCard = styled(Box)(({ theme }) => ({
   background: `linear-gradient(135deg, ${alpha('#0A192F', 0.9)} 0%, ${alpha('#0A192F', 0.95)} 100%)`,
   backdropFilter: 'blur(10px)',
   borderRadius: 3,
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
   overflow: 'hidden',
-  height: 'calc(100vh - 120px)',
+  height: 'calc(120vh - 140px)',
   display: 'flex',
   flexDirection: 'column'
 }));
@@ -184,7 +185,6 @@ const ContactsList = styled(List)(({ theme }) => ({
   height: '100%'
 }));
 
-// New component for image preview
 const ImagePreviewContainer = styled(Box)(({ theme }) => ({
   position: 'relative',
   width: 80,
@@ -213,6 +213,7 @@ const Chats = () => {
   const dispatch = useDispatch();
   const messagesEndRef = useRef(null);
   const userId = useSelector((state) => state.user?.profile?._id); 
+  const socketRef = useRef(null);
 
   const chatState = useSelector((state) => {
     if (!state) return {
@@ -242,12 +243,52 @@ const Chats = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [patientDialogOpen, setPatientDialogOpen] = useState(false);
   
-  // New state for image preview
+  // State for image preview
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState('');
 
   const fileInputRef = useRef(null);
 
+  // Initialize socket connection when component mounts
+useEffect(() => {
+  // Initialize socket once and store reference
+  const socket = initializeSocket();
+  socketRef.current = socket;
+  
+  // Set up global listener for new messages
+  const handleNewMessage = (message) => {
+    console.log('Component received new message:', message);
+    if (message && message._id) {
+      dispatch(newMessageReceived(message));
+
+    }
+  };
+  
+  // Add listener and clean up
+  socket.on('newMessage', handleNewMessage);
+
+  
+  return () => {
+    socket.off('newMessage', handleNewMessage);
+    // No need to disconnect the socket on component unmount
+    // because we're reusing it across the app
+  };
+}, [dispatch]);
+
+// Separate useEffect for joining/leaving chat rooms
+useEffect(() => {
+  if (socketRef.current && selectedChat?._id) {
+    console.log(`Joining chat room: ${selectedChat._id}`);
+    socketRef.current.emit('joinChat', selectedChat._id);
+    
+    return () => {
+      if (selectedChat?._id) {
+        console.log(`Leaving chat room: ${selectedChat._id}`);
+        socketRef.current.emit('leaveChat', selectedChat._id);
+      }
+    };
+  }
+}, [selectedChat]);
   useEffect(() => {
     if (userId) {
       dispatch(fetchChats());
@@ -276,13 +317,11 @@ const Chats = () => {
         file: selectedImage
       }));
 
-      
       // Clear image preview
       setSelectedImage(null);
+      dispatch(fetchChats());
       setImagePreviewUrl('');
-
     }
-
     
     if (messageInput.trim()) {
       // Send text message
@@ -291,10 +330,9 @@ const Chats = () => {
         content: messageInput,
         type: 'text'
       }));
-      // dispatch(fetchChats());
+      dispatch(fetchChats());
 
       setMessageInput('');
-
     }
     dispatch(fetchChats());
 
@@ -309,8 +347,9 @@ const Chats = () => {
     dispatch(createChat({ 
       doctorId: userId, 
       patientId: patient._id 
-    }));
-    dispatch(fetchChats());
+    })).then(() => {
+      dispatch(fetchChats());
+    });
   };
 
   const scrollToBottom = () => {
@@ -383,7 +422,7 @@ const Chats = () => {
 
   return (
     <GlassCard>
-       <input
+      <input
         type="file"
         ref={fileInputRef}
         onChange={handleSendImage}
@@ -401,8 +440,7 @@ const Chats = () => {
           position: 'relative',
         }}>
           <SidebarHeader>
-            <Typography variant="h4" fontWeight={600}  gutterBottom sx={{fontSize: { xs: '1.5rem', md: '2rem' }
-, color: '#0A192F' }}>
+            <Typography variant="h4" fontWeight={600} gutterBottom sx={{fontSize: { xs: '1.5rem', md: '2rem' }, color: '#0A192F' }}>
               Discussions
             </Typography>
             <SearchField
@@ -419,7 +457,7 @@ const Chats = () => {
                   </InputAdornment>
                 ),
               }}
-              sx={{ mb: 2,mt: 3 , width: '100%',}}
+              sx={{ mb: 2, mt: 3, width: '100%' }}
             />
             <Button
               variant="contained"
@@ -463,7 +501,7 @@ const Chats = () => {
                 return (
                   <ContactItem 
                     key={chat._id}
-                    active={isActive}
+                    active={isActive ? "true" : "false"}  // Change this line
                     onClick={() => dispatch(setSelectedChat(chat))}
                   >
                     <ListItemAvatar>
