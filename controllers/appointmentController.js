@@ -9,6 +9,7 @@ const Note = require("../models/Note");
 const Prescription = require("../models/Prescription");
 const Diet = require("../models/Diet");
 const Document = require("../models/Document");
+const MedicalFile = require('../models/MedicalFile'); // Make sure to import the model
 
 
 // Generate time slots
@@ -97,6 +98,7 @@ exports.getAvailableSlots = async (req, res) => {
     }
 };
 
+
 exports.bookAppointment = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -142,6 +144,22 @@ exports.bookAppointment = async (req, res) => {
             throw new Error("Slot not available");
         }
 
+        // Vérifier si un dossier médical existe déjà entre ce médecin et ce patient
+        let medicalFileExists = await MedicalFile.findOne({
+            patient: finalPatientId,
+            doctor: finalDoctorId
+        }).session(session);
+
+        // Créer un dossier médical s'il n'existe pas encore
+        if (!medicalFileExists) {
+            const newMedicalFile = new MedicalFile({
+                patient: finalPatientId,
+                doctor: finalDoctorId
+            });
+            await newMedicalFile.save({ session });
+            console.log(`New medical file created for patient ${finalPatientId} with doctor ${finalDoctorId}`);
+        }
+
         // Créer le rendez-vous
         const appointment = new Appointment({
             doctor: finalDoctorId,
@@ -162,7 +180,11 @@ exports.bookAppointment = async (req, res) => {
         // ✅ COMMIT après toutes les actions
         await session.commitTransaction();
 
-        res.status(201).json({ message: "Appointment booked successfully", appointment });
+        res.status(201).json({ 
+            message: "Appointment booked successfully", 
+            appointment,
+            medicalFileCreated: !medicalFileExists // Indiquer si un nouveau dossier médical a été créé
+        });
     } catch (error) {
         console.error("Error booking appointment:", error);
 

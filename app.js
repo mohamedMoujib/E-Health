@@ -15,15 +15,22 @@ require("dotenv").config();
 const app = express();
 exports.app = app;
 const server = require("http").createServer(app);
-const io = socketIo(server);
-
+const io = socketIo(server, {
+  cors: {
+    origin: "http://localhost:3001",
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(
   cors({
-    origin: "http://localhost:3001", // ✅ Allow requests from frontend
+    origin: "http://localhost:3001",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // ✅ All necessary methods
+    // ✅ Allow requests from frontend
     credentials: true, // ✅ Allow cookies & Authorization headers
   })
 );
@@ -41,8 +48,21 @@ const PORT = process.env.PORT || 3000;
 // Socket.IO connection
 io.on('connection', (socket) => {
   console.log('New client connected');
+  
+  // Join a chat room
+  socket.on('joinChat', (chatId) => {
+    socket.join(chatId);
+    console.log(`User joined chat: ${chatId}`);
+  });
+  
+  // Leave a chat room
+  socket.on('leaveChat', (chatId) => {
+    socket.leave(chatId);
+    console.log(`User left chat: ${chatId}`);
+  });
+  
   socket.on('disconnect', () => {
-      console.log('Client disconnected');
+    console.log('Client disconnected');
   });
 });
 

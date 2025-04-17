@@ -7,8 +7,8 @@ const Appointment = require('../models/appointment');
 // add privateEngagement
 exports.addPrivateEngagement = async (req, res) => {
     try {
-        const { doctor, description, startDate, endDate } = req.body;
-
+        const {  description, startDate, endDate } = req.body;
+        const doctor = req.user?.id; 
         // Convertir en objets Date
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -148,7 +148,7 @@ exports.deleteEngagement =  async (req, res) => {
 // Get private engagements for a doctor
 exports.getEngagement = async (req, res) => {
     try {
-        const { doctorId } = req.params;
+        const doctorId  = req.user?.id ;  
 
         const engagements = await PrivateEngagement.find({ doctor: doctorId });
 
