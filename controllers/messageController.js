@@ -31,9 +31,7 @@ exports.sendMessage = async (req, res) => {
   try {
     const id = req.user.id;
     const { chatId, type } = req.body;
-
     let content;
-
     if (type === "image") {
       if (!req.file || !req.file.path) {
         return res.status(400).json({ message: "Image non envoyée ou invalide" });
@@ -45,28 +43,31 @@ exports.sendMessage = async (req, res) => {
         return res.status(400).json({ message: "Contenu du message requis" });
       }
     }
-
     const message = new Message({
       content,
       sender: id,
       chat: chatId,
       type,
     });
-
     const savedMessage = await message.save();
-
-    // Mise à jour du chat
+    console.log('Message saved to DB:', savedMessage);
+    
+    // Update chat with last message
     const chat = await Chat.findById(chatId);
     if (!chat) {
       return res.status(404).json({ message: "Chat non trouvé" });
     }
     chat.lastMessage = savedMessage._id;
     await chat.save();
-
+    
+    // Emit socket event with the new message
+    const io = req.app.get('socketio');
+    console.log(`Emitting 'newMessage' to room ${chatId}:`, savedMessage);
+    io.to(chatId).emit('newMessage', savedMessage);
+    
     res.status(200).json(savedMessage);
   } catch (err) {
     console.error("Erreur d'envoi de message:", err);
     res.status(500).json({ message: err.message });
   }
 };
-
