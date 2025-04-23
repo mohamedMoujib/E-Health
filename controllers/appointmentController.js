@@ -97,6 +97,7 @@ exports.getAvailableSlots = async (req, res) => {
     }
 };
 
+
 exports.bookAppointment = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
