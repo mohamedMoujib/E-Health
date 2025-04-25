@@ -44,8 +44,8 @@ exports.register = async (req, res) => {
         await user.save();
 
         // // Generate tokens
-        // const accessToken = generateAccessToken(user);
-        // const refreshToken = generateRefreshToken(user);
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
 
         // Store refresh token in HTTP-only cookie
         res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: "Strict" });
