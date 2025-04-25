@@ -44,10 +44,10 @@ exports.getPatientDoctors = async (req, res) => {
         const patientId = req.params.id;
         const medicalFiles = await MedicalFile.find({ patient: patientId}).populate ({
             path: "doctor",
-            select: 'firstName lastName speciality phone address image' 
         })
         const doctors = medicalFiles.map((file) => file.doctor);
         res.json(doctors);
+        console.log(doctors);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -173,4 +173,3 @@ app.use("/api", indexRoutes);
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);//port:3000
 });
-

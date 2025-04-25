@@ -9,8 +9,7 @@ const Note = require("../models/Note");
 const Prescription = require("../models/Prescription");
 const Diet = require("../models/Diet");
 const Document = require("../models/Document");
-const MedicalFile = require('../models/MedicalFile'); // Make sure to import the model
-
+const MedicalFile = require("../models/MedicalFile");
 
 // Generate time slots
 exports.generateTimeSlots = (periods, interval = 20) => {
@@ -157,7 +156,7 @@ exports.bookAppointment = async (req, res) => {
                 doctor: finalDoctorId
             });
             await newMedicalFile.save({ session });
-            console.log(`New medical file created for patient ${finalPatientId} with doctor ${finalDoctorId}`);
+            //console.log(New medical file created for patient ${finalPatientId} with doctor ${finalDoctorId});
         }
 
         // Créer le rendez-vous
@@ -400,7 +399,7 @@ exports.getAppointmentsWithDetailsByPatient = async (req, res) => {
 exports.getAppointmentDetails = async (req, res) => {
     try {
         const { appointmentId } = req.params;
-        console.log("aaaaaaa");
+
         // Validate appointmentId
         if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
             return res.status(400).json({ message: "Invalid appointment ID" });

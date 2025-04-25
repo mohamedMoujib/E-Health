@@ -419,3 +419,31 @@ exports.logout = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
+exports.changePassword = async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({ message: "Ancien et nouveau mot de passe requis" });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: "Utilisateur non trouvé" });
+        }
+
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Ancien mot de passe incorrect" });
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        res.status(200).json({ message: "Mot de passe modifié avec succès" });
+    } catch (error) {
+        console.error("Erreur lors de la modification du mot de passe:", error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+};

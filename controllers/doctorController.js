@@ -115,3 +115,16 @@ exports.getDoctorSpecificAppointments = async (req, res) => {
   }
 };
 
+exports.getDoctorsBySpeciality = async (req, res) => {
+  const { specialityName } = req.params;
+
+  try {
+    const doctors = await Doctor.find({ speciality: specialityName });
+    console.log("specialityName", specialityName);
+    res.status(200).json(doctors);
+  } catch (error) {
+    console.error("Erreur récupération docteurs par spécialité:", error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+

@@ -1,5 +1,5 @@
 const express = require("express");
-const { register, login, getProfile, updateProfile, forgetPassword, resetPassword, refreshToken, logout,updateProfileImage, requestReset, verifyOtp, resetPasswordPatient } = require("../controllers/authController");
+const { register, login, getProfile, updateProfile, forgetPassword, resetPassword, refreshToken, logout,updateProfileImage, requestReset, verifyOtp, resetPasswordPatient, changePassword } = require("../controllers/authController");
 const { authMiddleware, roleMiddleware } = require("../middlewares/authMiddleware");
 const User = require("../models/User");
 const { upload } = require("../lib/cloudinaryConfig");
@@ -19,7 +19,6 @@ router.post("/forget-password", forgetPassword);
 router.post("/reset-password/:token", authMiddleware, resetPassword);
 router.post("/refreshToken", refreshToken );
 router.post("/logout", logout, authMiddleware);
-
-
+router.put("/change-password", authMiddleware, changePassword);
 
 module.exports = router;
