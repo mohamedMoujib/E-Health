@@ -1,5 +1,4 @@
 import * as React from 'react';
-import axios from 'axios'; // Use Axios instead of fetch
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
@@ -18,7 +17,8 @@ import ForgotPassword from './components/ForgetPassword';
 import AppTheme from '../../components/shared-theme/AppTheme';
 
 import { useAuth } from '../../contexts/AuthContext'; // Import AuthContext
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux'; // Import Redux hooks
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -63,12 +63,17 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SignIn(props) {
-  const { login } = useAuth(); // Récupérer la fonction signup depuis AuthContext
-  const navigate = useNavigate(); // Hook pour rediriger après l'inscription
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  // Get user role from Redux state if available
+  const role = useSelector(state => state.auth?.role);
+  
   const [formData, setFormData] = React.useState({ email: '', password: '' });
   const [errors, setErrors] = React.useState({ email: '', password: '', auth: '' });
   const [open, setOpen] = React.useState(false);
-  const [accessToken, setAccessToken] = React.useState(null);
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -94,16 +99,40 @@ export default function SignIn(props) {
   const handleClose = () => setOpen(false);
 
   const handleSubmit = async (event) => {
-   
-    
     event.preventDefault();
     if (!validateInputs()) return;
+    
+    setIsLoading(true);
+    setErrors(prev => ({ ...prev, auth: '' }));
 
     try {
-      await login(formData);
-      navigate("/dashboard/Acceuil");
+      console.log("Submitting login form with:", { email: formData.email });
+      const result = await login(formData);
+      console.log("Login successful:", result);
+      
+      // Check if user is admin and redirect accordingly
+      // This assumes your login function returns user data or updates Redux store
+      const userRole = result?.role || role;
+      
+      if (userRole === 'admin') {
+        console.log("Admin user detected, redirecting to admin dashboard");
+        navigate("/admin");
+      } else {
+        console.log("Regular user detected, redirecting to user dashboard");
+        navigate("/dashboard/Acceuil");
+      }
     } catch (error) {
-      setErrors((prev) => ({ ...prev, auth: error }));
+      console.error("Login error caught in component:", error);
+      
+      // Extract the string message from the error
+      const errorMessage = typeof error === 'string' 
+        ? error 
+        : (error?.message || "Authentication failed");
+      
+      console.log("Setting error in state:", errorMessage);
+      setErrors((prev) => ({ ...prev, auth: errorMessage }));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -151,7 +180,14 @@ export default function SignIn(props) {
             </FormControl>
             <FormControlLabel control={<Checkbox value="remember" color="primary" />} label="Se souvenir de moi" />
             <ForgotPassword open={open} handleClose={handleClose} />
-            <Button type="submit" fullWidth variant="contained">Se connecter</Button>
+            <Button 
+              type="submit" 
+              fullWidth 
+              variant="contained" 
+              disabled={isLoading}
+            >
+              {isLoading ? 'Connexion en cours...' : 'Se connecter'}
+            </Button>
             <Link component="button" onClick={handleClickOpen} variant="body2">Mot de passe oublié ?</Link>
           </Box>
           <Divider>ou</Divider>

@@ -180,7 +180,6 @@ const ConfirmButton = styled(Button)(() => ({
 
 export default function GlobalAppointmentModal({ patients = [], open, onClose, onAppointmentAdded }) {
   // Console log to ensure patients are being passed in
-  console.log("Patients list received:", patients);
 
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -209,17 +208,14 @@ export default function GlobalAppointmentModal({ patients = [], open, onClose, o
   // Fetch available slots when the date changes AND a patient is selected
   useEffect(() => {
     if (selectedDate && open && selectedPatientId) {
-      console.log("Fetching slots for date:", format(selectedDate, "yyyy-MM-dd"));
-      console.log("Selected patient ID:", selectedPatientId);
+     
       
       dispatch(getAvailableSlots(format(selectedDate, "yyyy-MM-dd")))
         .unwrap()
         .then((response) => {
-          console.log("API Response:", response);
           
           const slots = response.availableSlots || response;
           
-          console.log("Extracted slots:", slots);
           
           if (Array.isArray(slots)) {
             setAvailableSlots(slots);
@@ -241,7 +237,6 @@ export default function GlobalAppointmentModal({ patients = [], open, onClose, o
   };
 
   const handlePatientChange = (event) => {
-    console.log("Patient selected:", event.target.value);
     setSelectedPatientId(event.target.value);
     // Reset time when patient changes
     setSelectedTime(null);
@@ -295,8 +290,6 @@ export default function GlobalAppointmentModal({ patients = [], open, onClose, o
   // Get selected patient details
   const selectedPatient = patients.find(patient => patient.id === selectedPatientId) || {};
   
-  // Debug log for the selected patient
-  console.log("Selected patient:", selectedPatient);
 
   return (
     <ThemeProvider theme={theme}>

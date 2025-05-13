@@ -27,3 +27,23 @@ h1, h2, h3, h4, h5, h6 {
 .button:hover {
   background-color: #0056b3;
 }
+/* Add to your global CSS */
+.ant-dropdown-menu {
+  padding: 0 !important;
+}
+
+.ant-list-item {
+  transition: background-color 0.3s;
+}
+
+.ant-list-item:hover {
+  background-color: #f5f5f5 !important;
+}
+
+.notification-badge .ant-badge-count {
+  box-shadow: none;
+  font-size: 10px;
+  height: 16px;
+  line-height: 16px;
+  min-width: 16px;
+}

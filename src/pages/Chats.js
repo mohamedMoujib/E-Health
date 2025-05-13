@@ -34,15 +34,16 @@ import {
   sendMessage,
   createChat,
   sendImageMessage,
-  initializeSocket,
   newMessageReceived,
   updateChatList,
   setupSocketListeners,
 } from '../Redux/slices/chatSlice';
+import { initializeSocket, getSocket } from '../services/socketService';
 import { setSelectedChat } from '../Redux/slices/chatSlice';
 import PatientSelectionDialog from '../components/PatientSelectionDialog';
+import { addNotification } from '../Redux/slices/notificationSlice';
+import { useParams } from 'react-router-dom';
 
-// All your styled components remain the same
 const GlassCard = styled(Box)(({ theme }) => ({
   background: `linear-gradient(135deg, ${alpha('#0A192F', 0.9)} 0%, ${alpha('#0A192F', 0.95)} 100%)`,
   backdropFilter: 'blur(10px)',
@@ -54,7 +55,7 @@ const GlassCard = styled(Box)(({ theme }) => ({
   flexDirection: 'column'
 }));
 
-const MessageBubble = styled(Box)(({ theme, isUser }) => ({
+const MessageBubble = styled(Box)(({ theme, isUser, ...props }) => ({
   maxWidth: '75%',
   padding: theme.spacing(1.5, 2),
   borderRadius: isUser ? '18px 4px 18px 18px' : '4px 18px 18px 18px',
@@ -68,7 +69,7 @@ const MessageBubble = styled(Box)(({ theme, isUser }) => ({
   '&:hover': {
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
   }
-}));
+}));  
 
 const ContactItem = styled(ListItem)(({ theme, active }) => ({
   borderRadius: '12px',
@@ -210,6 +211,8 @@ const ImagePreviewCloseButton = styled(IconButton)(({ theme }) => ({
 }));
 
 const Chats = () => {
+  const { chatId } = useParams(); // Get chatId from URL parameters
+
   const dispatch = useDispatch();
   const messagesEndRef = useRef(null);
   const userId = useSelector((state) => state.user?.profile?._id); 
@@ -250,45 +253,100 @@ const Chats = () => {
   const fileInputRef = useRef(null);
 
   // Initialize socket connection when component mounts
-useEffect(() => {
-  // Initialize socket once and store reference
-  const socket = initializeSocket();
-  socketRef.current = socket;
-  
-  // Set up global listener for new messages
-  const handleNewMessage = (message) => {
-    console.log('Component received new message:', message);
-    if (message && message._id) {
-      dispatch(newMessageReceived(message));
+  useEffect(() => {
+    // Only attempt to initialize socket if userId exists
+    if (!userId) return;
 
-    }
-  };
-  
-  // Add listener and clean up
-  socket.on('newMessage', handleNewMessage);
+    try {
+      // Initialize socket and store reference
+      const socket = initializeSocket({ _id: userId });
+      
+      // Ensure socket is not null before adding event listeners
+      if (socket) {
+        socketRef.current = socket;
 
-  
-  return () => {
-    socket.off('newMessage', handleNewMessage);
-    // No need to disconnect the socket on component unmount
-    // because we're reusing it across the app
-  };
-}, [dispatch]);
+        // Message handler
+        const handleNewMessage = (message) => {
+          if (message && message._id) {
+            dispatch(newMessageReceived(message));
+          }
+        };
 
-// Separate useEffect for joining/leaving chat rooms
-useEffect(() => {
-  if (socketRef.current && selectedChat?._id) {
-    console.log(`Joining chat room: ${selectedChat._id}`);
-    socketRef.current.emit('joinChat', selectedChat._id);
-    
-    return () => {
-      if (selectedChat?._id) {
-        console.log(`Leaving chat room: ${selectedChat._id}`);
-        socketRef.current.emit('leaveChat', selectedChat._id);
+        // Notification handler (same as in App.js)
+        const handleNewNotification = (notification) => {
+          console.log("New notification received via socket:", notification);
+          const newNotification = {
+            _id: notification.notificationId || Date.now().toString(),
+            notificationId: notification.notificationId || Date.now().toString(),
+            title: notification.title || 'New Notification',
+            content: notification.content,
+            createdAt: notification.createdAt || Date.now(),
+            isRead: false,
+            type: notification.type || 'message',
+            relatedEntity: notification.chatId || notification.appointmentId,
+            entityModel: notification.type === 'message' ? 'Chat' : 
+                        notification.type === 'appointment' ? 'RendezVous' : 
+                        notification.type === 'medical' ? 'DossierMedical' : null
+          };
+          
+          dispatch(addNotification(newNotification));
+          try {
+            const audio = new Audio("data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFzb25pY1N0dWRpb3MuY29tIA==");
+            audio.volume = 0.5;
+            audio.play().catch(err => console.error('Failed to play sound:', err));
+          } catch (error) {
+            console.error('Error playing notification sound:', error);
+          }
+        };
+
+        // Add event listeners
+        socket.on('newMessage', handleNewMessage);
+        socket.on('newNotification', handleNewNotification);
+
+        // Cleanup function to remove event listeners
+        return () => {
+          if (socketRef.current) {
+            socketRef.current.off('newMessage', handleNewMessage);
+            socketRef.current.off('newNotification', handleNewNotification);
+          }
+        };
+      } else {
+        console.error("Socket initialization failed: socket is null");
       }
-    };
-  }
-}, [selectedChat]);
+    } catch (error) {
+      console.error("Error initializing socket:", error);
+    }
+  }, [dispatch, userId]);
+
+  useEffect(() => {
+    if (chatId && chats.length > 0) {
+      const targetChat = chats.find(chat => chat._id === chatId);
+      if (targetChat) {
+        dispatch(setSelectedChat(targetChat));
+      }
+    }
+  }, [chatId, chats, dispatch]);
+
+  // Handle joining/leaving chat rooms
+  useEffect(() => {
+    try {
+      const socket = getSocket();
+      if (!socket || !selectedChat?._id) return;
+
+      console.log(`Joining chat room: ${selectedChat._id}`);
+      socket.emit('joinChat', selectedChat._id);
+
+      return () => {
+        if (socket) {
+          console.log(`Leaving chat room: ${selectedChat._id}`);
+          socket.emit('leaveChat', selectedChat._id);
+        }
+      };
+    } catch (error) {
+      console.error("Error in chat room join/leave effect:", error);
+    }
+  }, [selectedChat]);
+
   useEffect(() => {
     if (userId) {
       dispatch(fetchChats());
@@ -319,7 +377,6 @@ useEffect(() => {
 
       // Clear image preview
       setSelectedImage(null);
-      dispatch(fetchChats());
       setImagePreviewUrl('');
     }
     
@@ -330,12 +387,12 @@ useEffect(() => {
         content: messageInput,
         type: 'text'
       }));
-      dispatch(fetchChats());
 
       setMessageInput('');
     }
+    
+    // Update chat list to reflect latest message
     dispatch(fetchChats());
-
   };
 
   const handlePatientSelect = (patient) => {
@@ -452,7 +509,7 @@ useEffect(() => {
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="center">
+                  <InputAdornment position="start">
                     <SearchIcon color="action" />
                   </InputAdornment>
                 ),
@@ -501,7 +558,7 @@ useEffect(() => {
                 return (
                   <ContactItem 
                     key={chat._id}
-                    active={isActive ? "true" : "false"}  // Change this line
+                    active={isActive ? "true" : "false"}
                     onClick={() => dispatch(setSelectedChat(chat))}
                   >
                     <ListItemAvatar>
@@ -605,7 +662,7 @@ useEffect(() => {
                   messages.map((message) => (
                     <MessageBubble 
                       key={message._id} 
-                      isUser={message.sender === userId}
+                      isUser={message.sender === userId ? 1 : 0}
                     >
                       {message.type === 'image' ? (
                         <Box sx={{ maxWidth: '100%', borderRadius: '12px', overflow: 'hidden' }}>

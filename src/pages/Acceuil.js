@@ -9,6 +9,7 @@ import GlobalAppointmentModal from '../components/GlobalAppointmentModal';
 import CreateArticleModal from '../components/CreateArticleModal';
 import { fetchPatientsList } from '../Redux/slices/patientsSlice';
 import { BarChart, Bar } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 
 const patientDemographicsData = [
   { ageGroup: '0-10', count: 12 },
@@ -33,6 +34,17 @@ const Acceuil = () => {
   const { profile, loading: userLoading } = userState;
   const { appointments, loading: appointmentsLoading } = useSelector(state => state.appointments);
   const { list, loading: patientsLoading } = useSelector(state => state.patients) || { list: [], loading: false };
+  // Add notifications from Redux store
+  const { notifications, unreadCount, loading: notificationsLoading } = useSelector(state => state.notifications);
+
+  // Filter unread notifications by type
+  const unreadMessageNotifications = notifications.filter(
+    notification => !notification.isRead && notification.type === 'message'
+  );
+  
+  const unreadAppointmentNotifications = notifications.filter(
+    notification => !notification.isRead && notification.type === 'appointment'
+  );
 
   useEffect(() => {
     if (appointments?.length) {
@@ -159,31 +171,35 @@ const Acceuil = () => {
     return appointmentDate.setHours(0, 0, 0, 0) === today.setHours(0, 0, 0, 0);
   }) || [];
 
- // Replace the upcomingAppointments section with this code:
-const upcomingAppointments = appointments
-?.filter(appointment => {
-  const appointmentDate = new Date(appointment.date);
-  const appointmentDateTime = new Date(`${appointment.date.split('T')[0]}T${appointment.time}`);
-  const now = new Date();
-  
-  // Include appointments from today (even if the time has passed) and future dates
-  return (
-    // Same day but future time OR future date
-    (appointmentDate.setHours(0, 0, 0, 0) === now.setHours(0, 0, 0, 0) && 
-     appointmentDateTime >= new Date()) || // Today but not passed yet
-    (new Date(appointment.date) > new Date()) // Future date
-  );
-})
-.sort((a, b) => {
-  // Create datetime objects for proper sorting
-  const dateTimeA = new Date(`${a.date.split('T')[0]}T${a.time}`);
-  const dateTimeB = new Date(`${b.date.split('T')[0]}T${b.time}`);
-  return dateTimeA - dateTimeB;
-})
-.slice(0, 3) || [];
+  const upcomingAppointments = appointments
+    ?.filter(appointment => {
+      const appointmentDate = new Date(appointment.date);
+      const appointmentDateTime = new Date(`${appointment.date.split('T')[0]}T${appointment.time}`);
+      const now = new Date();
+      
+      // Include appointments from today (even if the time has passed) and future dates
+      return (
+        // Same day but future time OR future date
+        (appointmentDate.setHours(0, 0, 0, 0) === now.setHours(0, 0, 0, 0) && 
+         appointmentDateTime >= new Date()) || // Today but not passed yet
+        (new Date(appointment.date) > new Date()) // Future date
+      );
+    })
+    .sort((a, b) => {
+      // Create datetime objects for proper sorting
+      const dateTimeA = new Date(`${a.date.split('T')[0]}T${a.time}`);
+      const dateTimeB = new Date(`${b.date.split('T')[0]}T${b.time}`);
+      return dateTimeA - dateTimeB;
+    })
+    .slice(0, 3) || [];
+
   const getStatusBadgeClass = (status) => {
     return status === 'confirmed' ? 'status-badge confirmed' : 'status-badge pending';
   };
+  const handleViewAppointment = (appointment) => {
+    navigate(`/dashboard/Patients/${appointment.patient._id}/appointments`, { state: { appointment } });
+  };
+  const navigate = useNavigate(); // Add this line at the top inside your component
 
   return (
     <div className="dashboard-container">
@@ -243,12 +259,12 @@ const upcomingAppointments = appointments
                 upcomingAppointments.map(appointment => {
                   const appointmentDate = new Date(appointment.date);
                   
-                  
                   return (
-                    <div key={appointment._id} className="upcoming-item">
+                    <div key={appointment._id} className="upcoming-item"   onClick={() => handleViewAppointment(appointment)}
+                    style={{ cursor: 'pointer' }}>
                       <div className="upcoming-header">
                         <span className="upcoming-time">{appointment.date.split('T')[0]} à {appointment.time}</span>
-                        <span className={getStatusBadgeClass(appointment.status )}>
+                        <span className={getStatusBadgeClass(appointment.status)}>
                           {appointment.status === 'confirmed' ? 'confirmé' : 'en attente'}
                         </span>
                       </div>
@@ -316,27 +332,53 @@ const upcomingAppointments = appointments
                 <Bell size={20} className="card-title-icon" />
                 Notifications
               </h2>
-              <span className="badge red">8 nouvelles</span>
+              <span className="badge red">{unreadCount} nouvelles</span>
             </div>
             <div className="notification-list">
-              <div className="notification-item message">
-                <MessageSquare size={18} className="notification-icon" />
-                <div className="notification-content">
-                  <p className="notification-title">Vous avez 3 messages non lus</p>
-                  <p className="notification-subtitle">2 de patients et 1 du Dr. Martin</p>
-                </div>
-              </div>
-              <div className="notification-item approval">
-                <CheckCircle size={18} className="notification-icon" />
-                <div className="notification-content">
-                  <p className="notification-title">{pendingAppointmentsCount} rendez-vous en attente de confirmation</p>
-                  <p className="notification-subtitle">Nécessitent votre approbation</p>
-                </div>
-              </div>
+              {notificationsLoading ? (
+                <div className="loading-indicator">Chargement des notifications...</div>
+              ) : (
+                <>
+                  {unreadMessageNotifications.length > 0 && (
+                    <div className="notification-item message">
+                      <MessageSquare size={18} className="notification-icon" />
+                      <div className="notification-content">
+                        <p className="notification-title">Vous avez {unreadMessageNotifications.length} notifications non vues</p>
+                        
+                      </div>
+                    </div>
+                  )}
+                  {unreadAppointmentNotifications.length > 0 && (
+                    <div className="notification-item approval">
+                      <CheckCircle size={18} className="notification-icon" />
+                      <div className="notification-content">
+                        <p className="notification-title">{unreadAppointmentNotifications.length} rendez-vous en attente</p>
+                        <p className="notification-subtitle">Nécessitent votre approbation</p>
+                      </div>
+                    </div>
+                  )}
+                  {pendingAppointmentsCount > 0 && !unreadAppointmentNotifications.length && (
+                    <div className="notification-item approval">
+                      <CheckCircle size={18} className="notification-icon" />
+                      <div className="notification-content">
+                        <p className="notification-title">{pendingAppointmentsCount} rendez-vous en attente de confirmation</p>
+                        <p className="notification-subtitle">Nécessitent votre approbation</p>
+                      </div>
+                    </div>
+                  )}
+                  {unreadCount === 0 && (
+                    <div className="notification-item">
+                      <Bell size={18} className="notification-icon" />
+                      <div className="notification-content">
+                        <p className="notification-title">Aucune nouvelle notification</p>
+                        <p className="notification-subtitle">Vous êtes à jour</p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            <div className="card-footer">
-              <a href="#" className="card-link">Voir toutes les notifications →</a>
-            </div>
+            
           </div>
           
           {/* Démographie des patients */}

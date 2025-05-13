@@ -1,48 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import io from 'socket.io-client';
+import { joinChatRoom, leaveChatRoom } from '../../services/socketService';
 
 // Socket instance to be used across the app
-let socket;
 
-// Initialize socket connection
-export const initializeSocket = () => {
-  if (!socket) {
-    console.log('Creating new socket connection to: http://localhost:3000');
-    socket = io("http://localhost:3000", {
-      withCredentials: true,
-    });
-    
-    socket.on('connect', () => {
-      console.log('Socket connected successfully with ID:', socket.id);
-    });
-    
-    socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-    });
-    
-    // ADD THIS - Listen for newMessage events globally
-    socket.on('newMessage', (message) => {
-      console.log('Socket received newMessage:', message);
-      // We'll handle dispatch in the component
-    });
-  }
-  return socket;
-};
 
-// Join a specific chat room
-export const joinChatRoom = (chatId) => {
-  if (socket) {
-    socket.emit('joinChat', chatId);
-  }
-};
 
-// Leave a specific chat room
-export const leaveChatRoom = (chatId) => {
-  if (socket) {
-    socket.emit('leaveChat', chatId);
-  }
-};
 
 // Fetch chats involving the user (doctor or patient)
 export const fetchChats = createAsyncThunk(

@@ -12,16 +12,25 @@ import {
   CalendarOutlined,
   MessageOutlined,
 } from '@ant-design/icons';
-import { Typography, Divider, Button, Layout, Menu, theme, Dropdown, Avatar, Space } from 'antd';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Link } from 'react-router-dom';
-import { useSelector } from 'react-redux'; 
-import { useDispatch } from 'react-redux';
+import {
+  Typography,
+  Divider,
+  Button,
+  Layout,
+  Menu,
+  theme,
+  Dropdown,
+  Avatar,
+  Space,
+} from 'antd';
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { fetchUserProfile } from '../Redux/slices/userSlice';
+import NotificationDropdown from '../components/NotificationsDropdown';
 
 const { Header, Sider, Content, Footer } = Layout;
 
-// Updated menu items with appropriate icons and links
+// Sidebar menu items
 const menuItems = [
   { key: '1', icon: <HomeOutlined />, label: 'Accueil', link: '/dashboard/Acceuil' },
   { key: '2', icon: <TeamOutlined />, label: 'Patients', link: '/dashboard/Patients' },
@@ -29,39 +38,54 @@ const menuItems = [
   { key: '4', icon: <FileTextOutlined />, label: 'Articles', link: '/dashboard/Articles' },
   { key: '5', icon: <CalendarOutlined />, label: 'Agenda', link: '/dashboard/Agenda' },
   { key: '6', icon: <MessageOutlined />, label: 'Chats', link: '/dashboard/Chats' },
-  { key: 'profile', icon: <UserOutlined />, label: 'Profile', link: '/dashboard/Profile' }, // Profile added
+  { key: 'profile', icon: <UserOutlined />, label: 'Profile', link: '/dashboard/Profile' },
 ];
 
 const Dashboard = () => {
   const profileImage = useSelector((state) => state.user.profile?.image);
   const dispatch = useDispatch();
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedKey, setSelectedKey] = useState(''); // State to track selected item
-  const navigate = useNavigate(); // For programmatic navigation
-  const location = useLocation(); // Get the current route
+  const [selectedKey, setSelectedKey] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
-  // Find the selected menu label
   const selectedItem = menuItems.find((item) => item.key === selectedKey)?.label || '';
-  
+
   useEffect(() => {
     dispatch(fetchUserProfile());
-    console.log("Fetching user profile...");
-    console.log("User Profile:", profileImage);
   }, [dispatch]);
-  
-  // Function to sync selectedKey with the current route
+
   useEffect(() => {
     const currentMenuItem = menuItems.find((item) => item.link === location.pathname);
     if (currentMenuItem) {
-      setSelectedKey(currentMenuItem.key); // Update selectedKey based on the current route
+      setSelectedKey(currentMenuItem.key);
     }
-  }, [location]); // Trigger this effect whenever the route changes
+  }, [location]);
 
-  // Profile Dropdown Menu
+  // ✅ Logout function
+  const logout = async () => {
+    try {
+      localStorage.removeItem('accessToken');
+      sessionStorage.clear();
+
+      dispatch({ type: 'CLEAR_USER' }); // If you have such an action
+
+      await fetch(`${process.env.REACT_APP_API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      navigate('/signin');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  // Profile dropdown menu
   const profileMenu = (
     <Menu
       items={[
@@ -69,11 +93,11 @@ const Dashboard = () => {
           key: 'profile',
           label: <Link to="/dashboard/Profile">Profile</Link>,
           icon: <UserOutlined />,
-          onClick: () => setSelectedKey('profile'), // Update selectedKey to 'profile'
+          onClick: () => setSelectedKey('profile'),
         },
         {
           key: 'logout',
-          label: <Link to="/logout">Logout</Link>,
+          label: <span onClick={logout}>Logout</span>,
           icon: <UploadOutlined />,
         },
       ]}
@@ -82,10 +106,10 @@ const Dashboard = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      {/* Sidebar - Fixed position */}
-      <Sider 
-        trigger={null} 
-        collapsible 
+      {/* Sidebar */}
+      <Sider
+        trigger={null}
+        collapsible
         collapsed={collapsed}
         style={{
           overflow: 'auto',
@@ -94,7 +118,7 @@ const Dashboard = () => {
           left: 0,
           top: 0,
           bottom: 0,
-          zIndex: 10
+          zIndex: 10,
         }}
       >
         <div className="demo-logo-vertical" />
@@ -103,23 +127,22 @@ const Dashboard = () => {
           mode="inline"
           selectedKeys={[selectedKey]}
           onClick={(e) => {
-            setSelectedKey(e.key); // Update selected key on click
+            setSelectedKey(e.key);
             const selectedItem = menuItems.find((item) => item.key === e.key);
             if (selectedItem?.link) {
-              navigate(selectedItem.link); // Navigate to the route
+              navigate(selectedItem.link);
             }
           }}
           className="custom-menu"
           items={menuItems.map((item) => ({
             ...item,
-            label: <Link to={item.link}>{item.label}</Link>, // Wrap label with Link
+            label: <Link to={item.link}>{item.label}</Link>,
           }))}
         />
       </Sider>
-      
-      {/* Main Layout - Adjusted with margin-left to account for fixed sidebar */}
+
+      {/* Main layout */}
       <Layout style={{ marginLeft: collapsed ? '80px' : '200px', transition: 'margin-left 0.2s' }}>
-        {/* Header - Fixed position */}
         <Header
           style={{
             display: 'flex',
@@ -131,10 +154,9 @@ const Dashboard = () => {
             top: 0,
             zIndex: 9,
             width: '100%',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.09)'
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.09)',
           }}
         >
-          {/* Left Section: Collapse Icon + Selected Item Name */}
           <Space>
             <Button
               type="text"
@@ -144,22 +166,18 @@ const Dashboard = () => {
             />
             <span style={{ fontSize: '16px', fontWeight: 'bold' }}>{selectedItem}</span>
           </Space>
-          {/* Right Section: Notifications + Profile */}
+
           <Space>
-            <Button
-              type="text"
-              icon={<BellOutlined />}
-              style={{ marginTop: '20px', marginRight: '10px', fontSize: '22px' }}
-            />
+            <NotificationDropdown />
             <Dropdown overlay={profileMenu} trigger={['click']}>
               <Avatar
-                style={{ 
-                  marginRight: '10px', 
-                  fontSize: '40px', 
+                style={{
+                  marginRight: '10px',
+                  fontSize: '40px',
                   cursor: 'pointer',
-                  width: 45, 
-                  height: 45, 
-                  borderRadius: "50%"  
+                  width: 45,
+                  height: 45,
+                  borderRadius: '50%',
                 }}
                 icon={!profileImage ? <UserOutlined /> : null}
                 src={profileImage}
@@ -167,8 +185,7 @@ const Dashboard = () => {
             </Dropdown>
           </Space>
         </Header>
-        
-        {/* Content */}
+
         <Content
           style={{
             margin: '24px 16px',
@@ -177,17 +194,15 @@ const Dashboard = () => {
             borderRadius: borderRadiusLG,
           }}
         >
-          {/* Render child components here */}
           <Outlet />
         </Content>
-        
+
         <Footer>
-          {/* Footer Typography */}
           <Typography
             style={{
               fontSize: '12px',
               textAlign: 'center',
-              marginTop: 'auto', // Pushes the typography to the bottom
+              marginTop: 'auto',
               padding: '10px',
               opacity: 0.7,
             }}
@@ -196,16 +211,15 @@ const Dashboard = () => {
           </Typography>
         </Footer>
       </Layout>
-      
-      {/* Custom Styles */}
+
       <style>
         {`
           .custom-menu .ant-menu-item-selected {
-            background-color: white !important; /* White background */
-            color: black !important; /* Dark text */
+            background-color: white !important;
+            color: black !important;
           }
           .custom-menu .ant-menu-item-selected .anticon {
-            color: black !important; /* Dark icon */
+            color: black !important;
           }
         `}
       </style>

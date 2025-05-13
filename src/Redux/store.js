@@ -7,6 +7,7 @@ import medicalFileReducer from './slices/medicalFileSlice';
 import chatReducer from './slices/chatSlice';
 import articlesReducer from './slices/articlesSlice';
 import privateEngagementReducer from './slices/engagementSlice';
+import notificationReducer from './slices/notificationSlice';
 // Allow non-serializable values for redux-persist actions
 
 export const store = configureStore({
@@ -20,6 +21,7 @@ export const store = configureStore({
     chat: chatReducer,
     articles: articlesReducer,
     privateEngagements: privateEngagementReducer,
+    notifications: notificationReducer,
   },
  
 });
