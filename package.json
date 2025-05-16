@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^1.9.0",
     "bcrypt": "^5.1.1",
     "cloudinary": "^2.5.1",
     "cookie-parser": "^1.4.7",
@@ -26,6 +27,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.10.0",
+    "openai": "^4.98.0",
     "readdirp": "^4.1.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1"
