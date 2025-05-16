@@ -4,13 +4,14 @@ const PrivateEngagement = require('../models/privateEngagement');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const admin = require('../firebase'); // Import Firebase Admin SDK
-const { Notification } = require("../models/Notification");
+const  Notification  = require("../models/Notification");
 const Note = require("../models/Note");
 const Prescription = require("../models/Prescription");
 const Diet = require("../models/Diet");
 const Document = require("../models/Document");
 const MedicalFile = require("../models/MedicalFile");
-
+const { sendAppointmentNotification , sendAppointmentStatusNotification,sendAppointmentRescheduleNotification } = require('../utils/notificationsHelper');
+const socketManager = require('../socketManager');
 // Generate time slots
 exports.generateTimeSlots = (periods, interval = 20) => {
     let slots = [];
@@ -176,12 +177,78 @@ exports.bookAppointment = async (req, res) => {
         io.to(finalDoctorId).emit("appointmentBooked", appointment);
         io.to(finalPatientId).emit("appointmentBooked", appointment);
 
+
+        
+        // Determine who receives the notification (whoever didn't make the booking)
+        const receiverId = userRole === "patient" ? finalDoctorId : finalPatientId;
+        const receiverSocketId = socketManager.getSocketId(receiverId);
+        
+        // Create notification content
+        const [doctor, patient] = await Promise.all([
+            User.findById(finalDoctorId).select('firstName lastName').lean(),
+            User.findById(finalPatientId).select('firstName lastName').lean()
+        ]);
+        
+        const formattedDate = new Date(date).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        const notificationTitle = userRole === "patient" 
+            ? `Nouvelle demande de rendez-vous` 
+            : `Rendez-vous programmé`;
+            
+        const notificationContent = userRole === "patient"
+            ? `${patient.firstName} ${patient.lastName} a demandé rendez-vous le ${formattedDate} à ${time}`
+            : `Le Dr. ${doctor.firstName} ${doctor.lastName} a programmé un rendez-vous le ${formattedDate} à ${time}`;
+        
+        // Create notification entry
+        const notification = new Notification({
+            recipient: receiverId,
+            title: notificationTitle,
+            content: notificationContent,
+            type: 'appointment',
+            relatedEntity: appointment._id,
+            entityModel: 'Appointment',
+            sender: userId
+        });
+        
+        await notification.save({ session });
+        
+        // Send real-time notification if receiver is connected
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit('newNotification', {
+                notificationId: notification._id.toString(),
+                title: notificationTitle,
+                content: notificationContent,
+                type: 'appointment',
+                appointmentId: appointment._id.toString(),
+                createdAt: notification.createdAt
+            });
+        }
+        
+        // Send push notification if receiver is not connected
+        let notificationResult = null;
+        if (!receiverSocketId) {
+            notificationResult = await sendAppointmentNotification({
+                doctorId: finalDoctorId,
+                patientId: finalPatientId,
+                appointment,
+                initiatorId: userId
+            }).catch(err => {
+                console.error('Notification error:', err);
+                return { error: err.message };
+            });
+        }
+        
         // ✅ COMMIT après toutes les actions
         await session.commitTransaction();
 
         res.status(201).json({ 
             message: "Appointment booked successfully", 
             appointment,
+            notification: notificationResult || { status: 'delivered_via_websocket' },
             medicalFileCreated: !medicalFileExists // Indiquer si un nouveau dossier médical a été créé
         });
     } catch (error) {
@@ -219,46 +286,115 @@ exports.DeleteAppointment = async (req, res) => {
 
 // Update Appointment
 exports.UpdateAppointmentStatus = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
     try {
-        const { appointmentId}= req.params;
-        const { status} = req.body;
+        const { appointmentId } = req.params;
+        const { status } = req.body;
+        const userId = req.user?.id;
 
         const allowedStatus = ["pending", "confirmed", "canceled","completed"];
         if(!allowedStatus.includes(status)) {
             return res.status(400).json({message: "Invalid status value"});
         }
-        const appointment = await Appointment.findByIdAndUpdate(appointmentId, { status }, { new: true });
-            if(!appointment) return res.status(404).json({ message: "Appointment not found"});
+        
+        const appointment = await Appointment.findByIdAndUpdate(
+            appointmentId, 
+            { status }, 
+            { new: true, session }
+        ).populate('doctor patient', 'firstName lastName');
+        
+        if(!appointment) return res.status(404).json({ message: "Appointment not found" });
 
-        //      Emit event
-        // const io = req.app.get('socketio');
-        // io.emit('appointmentStatusUpdated', appointment);
-         // Fetch doctor and patient tokens
-        //  const doctor = await User.findById(appointment.doctor);
-        //  const patient = await User.findById(appointment.patient);
- 
-         // Send notifications
-        //  const message = {
-        //      notification: {
-        //          title: 'Appointment Status Updated',
-        //          body: `Your appointment status has been updated to ${status}`
-        //      },
-        //      tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
-        //  };
- 
-        //  admin.messaging().sendMulticast(message)
-            //  .then((response) => {
-            //      console.log('Successfully sent message:', response);
-            //  })
-            //  .catch((error) => {
-            //      console.log('Error sending message:', error);
-            //  });
- 
+        // Get user roles to determine who made the update
+        const user = await User.findById(userId).select('role').lean();
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
 
-        res.json({ message: "Appointment status updated successfully", appointment });
+        // Determine notification recipient based on who made the update
+        let recipientId, notificationTitle, notificationContent;
+        const formattedDate = new Date(appointment.date).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        if (user.role === 'doctor' && userId.toString() === appointment.doctor._id.toString()) {
+            // Doctor made the update, notify patient
+            recipientId = appointment.patient._id;
+            notificationTitle = `Appointment status updated`;
+            notificationContent = `Your appointment with Dr. ${appointment.doctor.firstName} ${appointment.doctor.lastName} on ${formattedDate} at ${appointment.time} has been ${status}`;
+        } else {
+            // Patient or admin made the update, notify doctor
+            recipientId = appointment.doctor._id;
+            notificationTitle = `Appointment status updated`;
+            notificationContent = `Your appointment with ${appointment.patient.firstName} ${appointment.patient.lastName} on ${formattedDate} at ${appointment.time} has been ${status}`;
+        }
+        
+        // Create notification entry
+        const notification = new Notification({
+            recipient: recipientId,
+            title: notificationTitle,
+            content: notificationContent,
+            type: 'appointment',
+            isRead: false,
+            sender: userId,
+            relatedEntity: appointmentId,
+            entityModel: 'Appointment'
+        });
+        
+        await notification.save({ session });
+        
+        // Get socketio instance
+        const io = req.app.get("socketio");
+        
+        // Send real-time notification if receiver is connected
+        const recipientSocketId = socketManager.getSocketId(recipientId);
+        
+        if (recipientSocketId) {
+            io.to(recipientSocketId).emit('newNotification', {
+                notificationId: notification._id.toString(),
+                title: notificationTitle,
+                content: notificationContent,
+                type: 'appointment',
+                appointmentId: appointmentId,
+                createdAt: notification.createdAt
+            });
+        }
+        
+        // Send push notification if receiver is not connected via websocket
+        let notificationResult = null;
+        
+        if (!recipientSocketId) {
+            const isDoctor = recipientId.toString() === appointment.doctor._id.toString();
+            
+            notificationResult = await sendAppointmentStatusNotification({
+                appointment,
+                status,
+                recipientId,
+                initiatorId: userId,
+                isDoctor
+            }).catch(err => {
+                console.error('Notification error:', err);
+                return { error: err.message, recipient: isDoctor ? 'doctor' : 'patient' };
+            });
+        }
 
-        }catch (error) {
-            res.status(500).json({ message: "Server error", error });
+        await session.commitTransaction();
+        
+        res.json({ 
+            message: "Appointment status updated successfully", 
+            appointment,
+            notification: notificationResult || { status: 'delivered_via_websocket' }
+        });
+
+    } catch (error) {
+        await session.abortTransaction();
+        res.status(500).json({ message: "Server error", error });
+    } finally {
+        session.endSession();
     }
 }
 
@@ -267,87 +403,147 @@ exports.RescheduleAppointment = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
-    let isTransactionCommitted = false;
-
     try {
         const { appointmentId } = req.params;
         const { newDate, newTime } = req.body;
+        const userId = req.user?.id;
 
-        // Vérifier que la nouvelle date n'est pas dans le passé
+        // Validate new date isn't in the past
         const rescheduleDate = new Date(newDate);
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // On ignore l'heure pour comparer uniquement la date
+        today.setHours(0, 0, 0, 0);
 
         if (rescheduleDate < today) {
             throw new Error("Cannot reschedule an appointment to a past date");
         }
 
-        // Vérifier si le rendez-vous existe
-        const appointment = await Appointment.findById(appointmentId).session(session);
+        // Check if appointment exists
+        const appointment = await Appointment.findById(appointmentId).session(session)
+            .populate('doctor patient', 'firstName lastName');
+            
         if (!appointment) {
             throw new Error("Appointment not found");
         }
 
-        // Vérifier la disponibilité du médecin
-        const availableSlots = await findAvailableSlots(appointment.doctor, newDate);
+        // Check doctor availability
+        const availableSlots = await findAvailableSlots(appointment.doctor._id, newDate);
         if (!availableSlots) {
             throw new Error("Doctor not available on this date");
         }
 
-        // Vérifier si l'horaire est disponible
+        // Check slot availability
         if (!availableSlots.includes(newTime)) {
             throw new Error("Slot not available");
         }
 
-        // Mettre à jour le rendez-vous
+        // Store old values
+        const oldDate = appointment.date;
+        const oldTime = appointment.time;
+
+        // Update appointment
         appointment.date = newDate;
         appointment.time = newTime;
         await appointment.save({ session });
 
-        // Commit the transaction if everything goes well
+        // Get user role
+        const user = await User.findById(userId).select('role').lean();
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Prepare notification
+        const formattedOldDate = new Date(oldDate).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        const formattedNewDate = new Date(newDate).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        let recipientId, notificationTitle, notificationContent;
+        
+        if (user.role === 'doctor' && userId.toString() === appointment.doctor._id.toString()) {
+            recipientId = appointment.patient._id;
+            notificationTitle = `Rendez-vous reprogrammé`;
+            notificationContent = `Votre rendez-vous avec le Dr. ${appointment.doctor.firstName} ${appointment.doctor.lastName}  a été reprogrammé du ${formattedOldDate} le ${oldTime} à ${formattedNewDate} le ${newTime}`;
+        } else {
+            recipientId = appointment.doctor._id;
+            notificationTitle = `Rendez-vous reprogrammé`;
+            notificationContent = `Votre rendez-vous avec  ${appointment.patient.firstName} ${appointment.patient.lastName}  a été reprogrammé du ${formattedOldDate} le ${oldTime} à ${formattedNewDate} le ${newTime}`;
+        }
+        
+        // Create notification
+        const notification = new Notification({
+            recipient: recipientId,
+            title: notificationTitle,
+            content: notificationContent,
+            type: 'appointment',
+            isRead: false,
+            sender: userId,
+            relatedEntity: appointmentId,
+            entityModel: 'Appointment'
+        });
+        
+        await notification.save({ session });
+        
+        // Socket.io notification
+        const io = req.app.get("socketio");
+        const recipientSocketId = socketManager.getSocketId(recipientId);
+        
+        if (recipientSocketId) {
+            io.to(recipientSocketId).emit('newNotification', {
+                notificationId: notification._id.toString(),
+                title: notificationTitle,
+                content: notificationContent,
+                type: 'appointment',
+                appointmentId: appointmentId,
+                createdAt: notification.createdAt
+            });
+        }
+        
+        // Commit transaction before sending external notifications
         await session.commitTransaction();
-        isTransactionCommitted = true;
+        session.endSession();
 
-        // Emit event via WebSocket
-        // const io = req.app.get("socketio");
-        // io.emit("appointmentRescheduled", appointment);
+        // Send push notification (outside transaction)
+        let notificationResult = null;
+        if (!recipientSocketId) {
+            const isDoctor = recipientId.toString() === appointment.doctor._id.toString();
+            
+            notificationResult = await sendAppointmentRescheduleNotification({
+                appointment,
+                oldDate: formattedOldDate,
+                oldTime,
+                newDate: formattedNewDate,
+                newTime,
+                recipientId,
+                initiatorId: userId,
+                isDoctor
+            }).catch(err => {
+                console.error('Notification error:', err);
+                return { error: err.message, recipient: isDoctor ? 'doctor' : 'patient' };
+            });
+        }
 
-        // Fetch doctor and patient tokens
-        const doctor = await User.findById(appointment.doctor);
-        const patient = await User.findById(appointment.patient);
+        res.json({ 
+            message: "Appointment rescheduled successfully", 
+            appointment,
+            notification: notificationResult || { status: 'delivered_via_websocket' }
+        });
 
-        // Send notifications
-        // const message = {
-        //     notification: {
-        //         title: 'Appointment Rescheduled',
-        //         body: `Your appointment has been rescheduled to ${newDate} at ${newTime}`
-        //     },
-        //     tokens: [doctor.fcmToken, patient.fcmToken] // Assuming you store FCM tokens in the User model
-        // };
-
-        // admin.messaging().sendMulticast(message)
-        //     .then((response) => {
-        //         console.log('Successfully sent message:', response);
-        //     })
-        //     .catch((error) => {
-        //         console.log('Error sending message:', error);
-        //     });
-
-        res.json({ message: "Appointment rescheduled successfully", appointment });
     } catch (error) {
-        if (!isTransactionCommitted) {
+        // Only abort if transaction hasn't been committed
+        if (session.inTransaction()) {
             await session.abortTransaction();
         }
         session.endSession();
         res.status(500).json({ message: error.message || "Server error", error });
-    } finally {
-        if (!isTransactionCommitted) {
-            session.endSession();
-        }
     }
 };
-
-
 
 // Get all appointments with notes , documets , perscriptions , diets
 exports.getAppointmentsWithDetailsByPatient = async (req, res) => {

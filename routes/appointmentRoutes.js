@@ -7,8 +7,8 @@ router.get('/:doctorId/slotsDoctor',authMiddleware,getAvailableSlotsForPatient);
 router.get('/:date/slots',authMiddleware,  getAvailableSlots);
 router.post('/book',authMiddleware,  bookAppointment);
 router.delete('/:appointmentId/delete', DeleteAppointment);
-router.put('/:appointmentId/update', UpdateAppointmentStatus);
-router.put('/:appointmentId/reschedule', RescheduleAppointment);
+router.put('/:appointmentId/update',authMiddleware, UpdateAppointmentStatus);
+router.put('/:appointmentId/reschedule',authMiddleware, RescheduleAppointment);
 router.get('/appointmentsDetails/:patientId',authMiddleware, getAppointmentsWithDetailsByPatient)
 router.get('/appointmentDetails/:appointmentId',getAppointmentDetails) 
 module.exports = router;

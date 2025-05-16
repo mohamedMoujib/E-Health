@@ -4,7 +4,7 @@ const Patient = require('../models/Patient');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require("nodemailer");
-
+const Admin = require('../models/Admin');
 
 
 const generateAccessToken = (user) => {
@@ -32,7 +32,10 @@ exports.register = async (req, res) => {
             user = new Doctor({ firstName, lastName, email, password, cin, phone, address, dateOfBirth, role, speciality });
         } else if (role === "patient") {
             user = new Patient({ firstName, lastName, email, password, cin, phone, address, dateOfBirth, role });
-        } else {
+        }else if (role === "admin") {
+          user = new Admin({ firstName, lastName, email, password, cin, phone, address, dateOfBirth, role });
+      }
+         else {
             return res.status(400).json({ message: "Invalid role" });
         }
 
@@ -95,7 +98,7 @@ exports.refreshToken = async (req, res) => {
             console.log("Decoded refresh token:", decoded);
 
             const newAccessToken = generateAccessToken({ _id: decoded.id, role: decoded.role });
-            res.json({ accessToken: newAccessToken });
+            res.json({ accessToken: newAccessToken , role: decoded.role });
         });
     } catch (error) {
         console.error("Error in refresh token endpoint:", error.message);
@@ -411,14 +414,33 @@ exports.resetPassword = async (req, res) => {
     }
 };
 
-exports.logout = async (req, res) => {
-    try {
-        res.clearCookie("refreshToken");
-        res.json({ message: "Logged out successfully" });
-    } catch (error) {
-        res.status(500).json({ message: "Server error" });
+exports.logout = (req, res) => {
+  try {
+    // Optional: Clear session if using sessions
+    if (req.session) {
+      req.session.destroy(() => {
+        console.log("Session destroyed");
+      });
     }
+
+    // Clear refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+      path: '/', // match cookie path
+    });
+
+    // Optional: Clear other cookies manually if needed
+    // res.clearCookie('accessToken', {...});
+
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (err) {
+    console.error("Logout error:", err);
+    return res.status(500).json({ message: "Logout failed" });
+  }
 };
+
 
 exports.changePassword = async (req, res) => {
     try {

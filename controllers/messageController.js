@@ -100,7 +100,7 @@ exports.sendMessage = async (req, res) => {
     if (receiverSocketId) {
       io.to(receiverSocketId).emit('newNotification', {
         notificationId: savedMessage._id.toString(),
-        title: sender ? `New message from ${sender.firstName} ${sender.lastName}` : 'New message',
+        title: sender ? `Nouveau message de ${sender.firstName} ${sender.lastName}` : 'Nouveau message',
         content: type === 'image' ? '📷 Image' : content,
         type: 'message',
         chatId: chatId.toString(),

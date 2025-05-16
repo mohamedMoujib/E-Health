@@ -23,13 +23,17 @@ const NotificationSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   relatedEntity: {
     type: mongoose.Schema.Types.ObjectId,
     refPath: 'entityModel'
   },
   entityModel: {
     type: String,
-    enum: ['RendezVous', 'Chat', 'DossierMedical']
+    enum: ['Appointment', 'Chat', 'DossierMedical']
   },
   createdAt: {
     type: Date,
