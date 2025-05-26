@@ -1,6 +1,6 @@
 const Doctor = require("../models/Doctor");
 const MedicalFile = require("../models/MedicalFile");
-const Appointment = require("../models/appointment");
+const Appointment = require("../models/Appointment");
 const Patient = require("../models/Patient");
 //View Doctor Details by ID
 exports.viewDoctorDetails = async (req , res) => {
