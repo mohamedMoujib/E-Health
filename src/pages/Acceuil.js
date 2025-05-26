@@ -7,34 +7,25 @@ import { getDoctorAppointments } from '../Redux/slices/appointmentSlice';
 import { fetchUserProfile } from '../Redux/slices/userSlice';
 import GlobalAppointmentModal from '../components/GlobalAppointmentModal';
 import CreateArticleModal from '../components/CreateArticleModal';
+import CreatePatientModal from '../components/CreatePatientModal';
 import { fetchPatientsList } from '../Redux/slices/patientsSlice';
 import { BarChart, Bar } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-
-const patientDemographicsData = [
-  { ageGroup: '0-10', count: 12 },
-  { ageGroup: '11-20', count: 18 },
-  { ageGroup: '21-30', count: 29 },
-  { ageGroup: '31-40', count: 38 },
-  { ageGroup: '41-50', count: 32 },
-  { ageGroup: '51-60', count: 27 },
-  { ageGroup: '61-70', count: 21 },
-  { ageGroup: '71+', count: 15 }
-];
 
 const Acceuil = () => {
   const dispatch = useDispatch();
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
+  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   const [monthlyAppointmentData, setMonthlyAppointmentData] = useState([]);
   const [welcomeText, setWelcomeText] = useState("");
   const [subtitleText, setSubtitleText] = useState("");
+  const [patientDemographicsData, setPatientDemographicsData] = useState([]);
   
   const userState = useSelector(state => state.user) || { profile: null, loading: false };
   const { profile, loading: userLoading } = userState;
   const { appointments, loading: appointmentsLoading } = useSelector(state => state.appointments);
-  const { list, loading: patientsLoading } = useSelector(state => state.patients) || { list: [], loading: false };
-  // Add notifications from Redux store
+  const { list: patientsList, loading: patientsLoading } = useSelector(state => state.patients) || { list: [], loading: false };
   const { notifications, unreadCount, loading: notificationsLoading } = useSelector(state => state.notifications);
 
   // Filter unread notifications by type
@@ -45,6 +36,66 @@ const Acceuil = () => {
   const unreadAppointmentNotifications = notifications.filter(
     notification => !notification.isRead && notification.type === 'appointment'
   );
+
+  // FIXED: Separate useEffect for initial data fetching (runs only once on mount)
+  useEffect(() => {
+    dispatch(fetchUserProfile());
+    dispatch(getDoctorAppointments());
+    dispatch(fetchPatientsList());
+  }, [dispatch]);
+
+  // FIXED: Separate useEffect for patient demographics calculation (only when patientsList changes)
+  useEffect(() => {
+    if (patientsList?.length) {
+      const ageGroups = {
+        '0-10': 0,
+        '11-20': 0,
+        '21-30': 0, 
+        '31-40': 0,
+        '41-50': 0,
+        '51-60': 0,
+        '61-70': 0,
+        '71+': 0
+      };
+      
+      const currentDate = new Date();
+      
+      patientsList.forEach(patient => {
+        if (patient.dateOfBirth) {
+          const birthDate = new Date(patient.dateOfBirth);
+          let age = currentDate.getFullYear() - birthDate.getFullYear();
+          
+          // Adjust age if birthday hasn't occurred yet this year
+          const currentMonth = currentDate.getMonth();
+          const birthMonth = birthDate.getMonth();
+          const currentDay = currentDate.getDate();
+          const birthDay = birthDate.getDate();
+          
+          if (currentMonth < birthMonth || (currentMonth === birthMonth && currentDay < birthDay)) {
+            age--;
+          }
+          
+          // Assign to appropriate age group
+          if (age <= 10) ageGroups['0-10']++;
+          else if (age <= 20) ageGroups['11-20']++;
+          else if (age <= 30) ageGroups['21-30']++;
+          else if (age <= 40) ageGroups['31-40']++;
+          else if (age <= 50) ageGroups['41-50']++;
+          else if (age <= 60) ageGroups['51-60']++;
+          else if (age <= 70) ageGroups['61-70']++;
+          else ageGroups['71+']++;
+        }
+      });
+      
+      // Convert to array format for the chart
+      const demographicsData = Object.keys(ageGroups).map(ageGroup => ({
+        ageGroup,
+        count: ageGroups[ageGroup]
+      }));
+      
+      setPatientDemographicsData(demographicsData);
+    }
+  }, [patientsList]); // Only patientsList as dependency, no dispatch
 
   useEffect(() => {
     if (appointments?.length) {
@@ -135,12 +186,6 @@ const Acceuil = () => {
 
   const pendingAppointmentsCount = appointments?.filter(appointment => appointment.status === 'pending').length || 0;
 
-  useEffect(() => {
-    dispatch(fetchUserProfile());
-    dispatch(getDoctorAppointments());
-    dispatch(fetchPatientsList());
-  }, [dispatch]);
-
   const handleOpenAppointmentModal = () => {
     setIsAppointmentModalOpen(true);
   };
@@ -157,12 +202,25 @@ const Acceuil = () => {
     setIsArticleModalOpen(false);
   };
 
+  const handleOpenPatientModal = () => {
+    setIsPatientModalOpen(true);
+  };
+
+  const handleClosePatientModal = () => {
+    setIsPatientModalOpen(false);
+  };
+
   const handleAppointmentAdded = () => {
     dispatch(getDoctorAppointments());
   };
 
   const handleArticleAdded = () => {
     console.log('Article ajouté avec succès');
+  };
+
+  const handlePatientAdded = () => {
+    console.log('Patient ajouté avec succès');
+    dispatch(fetchPatientsList()); // This is fine since it's triggered by user action
   };
 
   const todayAppointments = appointments?.filter(appointment => {
@@ -177,12 +235,19 @@ const Acceuil = () => {
       const appointmentDateTime = new Date(`${appointment.date.split('T')[0]}T${appointment.time}`);
       const now = new Date();
       
+      // Create new Date objects for comparison to avoid mutation
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
+      
+      const appointmentDateStart = new Date(appointmentDate);
+      appointmentDateStart.setHours(0, 0, 0, 0);
+      
       // Include appointments from today (even if the time has passed) and future dates
       return (
         // Same day but future time OR future date
-        (appointmentDate.setHours(0, 0, 0, 0) === now.setHours(0, 0, 0, 0) && 
-         appointmentDateTime >= new Date()) || // Today but not passed yet
-        (new Date(appointment.date) > new Date()) // Future date
+        (appointmentDateStart.getTime() === todayStart.getTime() && 
+         appointmentDateTime >= now) || // Today but not passed yet
+        (appointmentDate > now) // Future date
       );
     })
     .sort((a, b) => {
@@ -196,10 +261,12 @@ const Acceuil = () => {
   const getStatusBadgeClass = (status) => {
     return status === 'confirmed' ? 'status-badge confirmed' : 'status-badge pending';
   };
+  
+  const navigate = useNavigate();
+  
   const handleViewAppointment = (appointment) => {
     navigate(`/dashboard/Patients/${appointment.patient._id}/appointments`, { state: { appointment } });
   };
-  const navigate = useNavigate(); // Add this line at the top inside your component
 
   return (
     <div className="dashboard-container">
@@ -236,7 +303,10 @@ const Acceuil = () => {
                   <Plus size={18} className="btn-icon" />
                   Nouveau rendez-vous
                 </button>
-                <button className="btn btn-blue">
+                <button 
+                  className="btn btn-blue"
+                  onClick={handleOpenPatientModal}
+                >
                   <UserPlus size={18} className="btn-icon" />
                   Ajouter un patient
                 </button>
@@ -244,8 +314,8 @@ const Acceuil = () => {
             </div>
           </div>
            
-           {/* Rendez-vous à venir */}
-           <div className="card">
+          {/* Rendez-vous à venir */}
+          <div className="card">
             <div className="card-header">
               <h2 className="card-title">
                 <Clock size={20} className="card-title-icon" />
@@ -260,7 +330,7 @@ const Acceuil = () => {
                   const appointmentDate = new Date(appointment.date);
                   
                   return (
-                    <div key={appointment._id} className="upcoming-item"   onClick={() => handleViewAppointment(appointment)}
+                    <div key={appointment._id} className="upcoming-item" onClick={() => handleViewAppointment(appointment)}
                     style={{ cursor: 'pointer' }}>
                       <div className="upcoming-header">
                         <span className="upcoming-time">{appointment.date.split('T')[0]} à {appointment.time}</span>
@@ -378,50 +448,55 @@ const Acceuil = () => {
                 </>
               )}
             </div>
-            
           </div>
           
-          {/* Démographie des patients */}
+          {/* Démographie des patients - Dynamique basée sur dateOfBirth */}
           <div className="card wide-card">
             <div className="card-header">
               <h2 className="card-title">Démographie des patients</h2>
               <div className="card-subtitle">Répartition par âge</div>
             </div>
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={patientDemographicsData}
-                  margin={{
-                    top: 20,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="ageGroup" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    label={{ value: 'Tranches d\'âge', position: 'insideBottom', offset: -5 }}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    label={{ value: 'Nombre de patients', angle: -90, position: 'insideLeft' }}
-                  />
-                  <Tooltip 
-                    formatter={(value) => [`${value} patients`, 'Nombre']}
-                    labelFormatter={(label) => `Âge: ${label}`}
-                  />
-                  <Bar 
-                    dataKey="count" 
-                    fill="#0A192F"
-                    radius={[4, 4, 0, 0]}
-                    barSize={30}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              {patientsLoading ? (
+                <div className="loading-indicator">Chargement des données démographiques...</div>
+              ) : patientsList.length === 0 ? (
+                <div className="no-data">Aucune donnée démographique disponible</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={patientDemographicsData}
+                    margin={{
+                      top: 20,
+                      right: 30,
+                      left: 20,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="ageGroup" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      label={{ value: 'Tranches d\'âge', position: 'insideBottom', offset: -5 }}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      label={{ value: 'Nombre de patients', angle: -90, position: 'insideLeft' }}
+                    />
+                    <Tooltip 
+                      formatter={(value) => [`${value} patients`, 'Nombre']}
+                      labelFormatter={(label) => `Âge: ${label}`}
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      fill="#0A192F"
+                      radius={[4, 4, 0, 0]}
+                      barSize={30}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
           
@@ -430,7 +505,7 @@ const Acceuil = () => {
 
       {/* Modal de rendez-vous */}
       <GlobalAppointmentModal
-        patients={list || []}
+        patients={patientsList || []}
         open={isAppointmentModalOpen}
         onClose={handleCloseAppointmentModal}
         onAppointmentAdded={handleAppointmentAdded}
@@ -441,6 +516,13 @@ const Acceuil = () => {
         open={isArticleModalOpen}
         onClose={handleCloseArticleModal}
         onArticleAdded={handleArticleAdded}
+      />
+
+      {/* Modal de patient */}
+      <CreatePatientModal
+        open={isPatientModalOpen}
+        onClose={handleClosePatientModal}
+        onPatientAdded={handlePatientAdded}
       />
     </div>
   );

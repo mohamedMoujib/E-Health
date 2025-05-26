@@ -21,7 +21,7 @@ export const fetchChats = createAsyncThunk(
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-
+      console.log("Fetched chats:", res.data);
       return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);

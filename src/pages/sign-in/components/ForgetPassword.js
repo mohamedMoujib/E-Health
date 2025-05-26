@@ -34,16 +34,16 @@ function ForgotPassword({ open, handleClose }) {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.message || "Something went wrong.");
+        setError(result.message || "Une erreur s'est produite.");
       } else {
-        setSuccess("Password reset link sent successfully.");
+        setSuccess("Lien de réinitialisation du mot de passe envoyé avec succès.");
         setTimeout(() => {
           setSuccess("");
           handleClose(); // Fermer la modal après le succès
         }, 3000);
       }
     } catch (error) {
-      setError("Failed to send password reset link.");
+      setError("Échec de l'envoi du lien de réinitialisation du mot de passe.");
     }
   };
 
@@ -62,13 +62,13 @@ function ForgotPassword({ open, handleClose }) {
         },
       }}
     >
-      <DialogTitle>Reset password</DialogTitle>
+      <DialogTitle>Réinitialiser le mot de passe</DialogTitle>
       <DialogContent
         sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}
       >
         <DialogContentText>
-          Enter your account&apos;s email address, and we&apos;ll send you a link to
-          reset your password.
+          Entrez l'adresse e-mail de votre compte et nous vous enverrons un lien pour
+          réinitialiser votre mot de passe.
         </DialogContentText>
         <OutlinedInput
           autoFocus
@@ -76,8 +76,8 @@ function ForgotPassword({ open, handleClose }) {
           margin="dense"
           id="email"
           name="email"
-          label="Email address"
-          placeholder="Email address"
+          label="Adresse e-mail"
+          placeholder="Adresse e-mail"
           type="email"
           fullWidth
           value={email}
@@ -88,9 +88,9 @@ function ForgotPassword({ open, handleClose }) {
           {success && <Alert severity="success">{success}</Alert>}
       </DialogContent>
       <DialogActions sx={{ pb: 3, px: 3 }}>
-        <Button onClick={handleClose}>Cancel</Button>
+        <Button onClick={handleClose}>Annuler</Button>
         <Button variant="contained" type="submit" onClick={handleSubmit}>
-          Continue
+          Continuer
         </Button>
       </DialogActions>
     </Dialog>

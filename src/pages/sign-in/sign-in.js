@@ -12,6 +12,10 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import MuiCard from '@mui/material/Card';
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
 import { styled } from '@mui/material/styles';
 import ForgotPassword from './components/ForgetPassword';
 import AppTheme from '../../components/shared-theme/AppTheme';
@@ -62,6 +66,14 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
   },
 }));
 
+const LogoContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  width: '100%',
+  textAlign: 'center',
+}));
+
 export default function SignIn(props) {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -81,6 +93,10 @@ export default function SignIn(props) {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
+    // Clear auth error when user starts typing
+    if (errors.auth) {
+      setErrors((prev) => ({ ...prev, auth: '' }));
+    }
   };
 
   const validateInputs = () => {
@@ -97,6 +113,24 @@ export default function SignIn(props) {
 
   const handleClickOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+
+  const handleCloseError = () => {
+    setErrors(prev => ({ ...prev, auth: '' }));
+  };
+
+  const getErrorSeverity = (errorMessage) => {
+    if (errorMessage.includes('pending') || errorMessage.includes('validation') || errorMessage.includes('approval')) {
+      return 'warning';
+    }
+    return 'error';
+  };
+
+  const getErrorTitle = (errorMessage) => {
+    if (errorMessage.includes('pending') || errorMessage.includes('validation') || errorMessage.includes('approval')) {
+      return 'Compte en attente de validation';
+    }
+    return 'Erreur de connexion';
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -140,13 +174,37 @@ export default function SignIn(props) {
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
       <SignInContainer direction="column" justifyContent="space-between">
-        {errors.auth && (
-          <Typography color="error" sx={{ position: 'absolute', top: '170px', left: '50%', transform: 'translateX(-50%)', textAlign: 'center', width: '100%', zIndex: 10 }}>
-            {errors.auth}
-          </Typography>
-        )}
         <Card variant="outlined">
-          <Typography component="h1" variant="h4">Se connecter</Typography>
+          <LogoContainer>
+            <img src="/logo2.png" alt="Logo" width="100" height="100" style={{ marginTop: '20px', marginBottom: '10px' }} />
+          </LogoContainer>
+          
+          {/* Error Alert - Now inside the card */}
+          {errors.auth && (
+            <Alert 
+              severity={getErrorSeverity(errors.auth)}
+              sx={{ mb: 2 }}
+              action={
+                <IconButton
+                  aria-label="close"
+                  color="inherit"
+                  size="small"
+                  onClick={handleCloseError}
+                >
+                  <CloseIcon fontSize="inherit" />
+                </IconButton>
+              }
+            >
+              <AlertTitle>{getErrorTitle(errors.auth)}</AlertTitle>
+              {errors.auth}
+              {errors.auth.includes('pending') && (
+                <Typography variant="caption" display="block" sx={{ mt: 1, opacity: 0.8 }}>
+                  💡 Vérifiez régulièrement votre email pour les notifications d'approbation
+                </Typography>
+              )}
+            </Alert>
+          )}
+
           <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 2 }}>
             <FormControl>
               <FormLabel htmlFor="email">Email</FormLabel>
@@ -178,7 +236,6 @@ export default function SignIn(props) {
                 onChange={handleChange}
               />
             </FormControl>
-            <FormControlLabel control={<Checkbox value="remember" color="primary" />} label="Se souvenir de moi" />
             <ForgotPassword open={open} handleClose={handleClose} />
             <Button 
               type="submit" 

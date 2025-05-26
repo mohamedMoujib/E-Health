@@ -63,7 +63,7 @@ const AppointmentHistoryCard = ({ patientId }) => {
     }}>
       <Box sx={{ background: "linear-gradient(145deg, #f5f7fa 0%, #e4e9f2 100%)", px: 3, py: 2 }}>
         <Typography variant="h6" fontWeight="600" color="#333">
-          Appointment History
+          Historique des rendez-vous
         </Typography>
       </Box>
       

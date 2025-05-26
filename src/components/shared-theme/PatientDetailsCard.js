@@ -19,10 +19,16 @@ import CakeIcon from "@mui/icons-material/Cake";
 import HomeIcon from "@mui/icons-material/Home";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import AppointmentModal from "./AppointmentModal";
+import { fetchChats } from "../../Redux/slices/chatSlice"; // Adjust the import path as needed
 
 const PatientProfileCard = ({ patient }) => {
   const [openModal, setOpenModal] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  // Removed the problematic useSelector call
 
   if (!patient) {
     return (
@@ -42,6 +48,42 @@ const PatientProfileCard = ({ patient }) => {
     }
   };
 
+  const handleMessageClick = async () => {
+    try {
+      // Dispatch the action to fetch chats and get the result
+      const resultAction = await dispatch(fetchChats());
+      
+      // Check if the action was fulfilled and has payload
+      if (resultAction && resultAction.payload) {
+        const chats = resultAction.payload;
+        
+        // Find the chat where this patient is a participant
+        const patientChat = chats.find(chat => 
+          chat.patient && (chat.patient._id === patient._id)
+        );
+        
+        if (patientChat) {
+          // If chat exists, navigate directly to it using just the chat ID
+          navigate(`/dashboard/Chats/${patientChat._id}`);
+        } else {
+          // If no chat exists yet, navigate to chats list with intent to create new
+          navigate("/dashboard/Chats", { 
+            state: { 
+              createNewChat: true,
+              patientId: patient._id
+            } 
+          });
+        }
+      } else {
+        // If the fetch didn't return chats, navigate to main chats page
+        navigate("/dashboard/Chats");
+      }
+    } catch (error) {
+      console.error("Error fetching chats:", error);
+      // Fallback navigation if there's an error
+      navigate("/dashboard/Chats");
+    }
+  };
 
   const statusColors = {
     active: { bg: '#e8f5e9', color: '#2e7d32' },
@@ -119,7 +161,7 @@ const PatientProfileCard = ({ patient }) => {
               }}
               onClick={() => setOpenModal(true)}
             >
-              Appointment
+              Rendez-vous
             </Button>
             <AppointmentModal patientId={patient._id} open={openModal} onClose={() => setOpenModal(false)} />
 
@@ -137,6 +179,7 @@ const PatientProfileCard = ({ patient }) => {
                   backgroundColor: "rgba(98, 0, 234, 0.04)",
                 }
               }}
+              onClick={handleMessageClick}
             >
               Message
             </Button>
@@ -153,7 +196,7 @@ const PatientProfileCard = ({ patient }) => {
               <CakeIcon color="action" sx={{ mr: 1.5, opacity: 0.7 }} />
               <Box>
                 <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 0.2 }}>
-                  Date of Birth
+                  Date de naissance
                 </Typography>
                 <Typography fontWeight="500">
                   {formatDate(patient.dateOfBirth)}
@@ -165,7 +208,7 @@ const PatientProfileCard = ({ patient }) => {
               <HomeIcon color="action" sx={{ mr: 1.5, opacity: 0.7 }} />
               <Box>
                 <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 0.2 }}>
-                  Address
+                  Adresse
                 </Typography>
                 <Typography fontWeight="500">
                   {patient?.address || "No address on file"}
@@ -191,7 +234,7 @@ const PatientProfileCard = ({ patient }) => {
               <PhoneIcon color="action" sx={{ mr: 1.5, opacity: 0.7 }} />
               <Box>
                 <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 0.2 }}>
-                  Phone Number
+                  Téléphone
                 </Typography>
                 <Typography fontWeight="500">
                   {patient?.phone || "No phone on file"}

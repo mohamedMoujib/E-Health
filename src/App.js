@@ -95,7 +95,7 @@ function App() {
           type: notification.type || 'message',
           relatedEntity: notification.chatId || notification.appointmentId,
           entityModel: notification.type === 'message' ? 'Chat' : 
-                      notification.type === 'appointment' ? 'RendezVous' : 
+                      notification.type === 'appointment' ? 'Appointment' : 
                       notification.type === 'medical' ? 'DossierMedical' : null
         };
         

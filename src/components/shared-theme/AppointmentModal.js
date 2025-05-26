@@ -20,7 +20,7 @@ import {
 } from "@mui/material";
 import { Calendar as MuiCalendar } from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import { format, isToday, isWeekend, addDays } from "date-fns";
+import { format, isToday, isWeekend, addDays, parse, compareAsc } from "date-fns";
 import { fr } from "date-fns/locale";
 import CloseIcon from "@mui/icons-material/Close";
 import EventIcon from "@mui/icons-material/Event";
@@ -118,8 +118,6 @@ const TimeSlotButton = styled(Button)(({ selected }) => ({
   },
 }));
 
-  
-
 const StepContainer = styled(Paper)(() => ({
   padding: theme.spacing(3),
   borderRadius: "16px",
@@ -167,6 +165,7 @@ export default function AppointmentModal({ patientId, open, onClose }) {
   const [appointmentType, setAppointmentType] = useState("Consultation");
   const [summary, setSummary] = useState(false);
   const [availableSlots, setAvailableSlots] = useState([]);
+  const [filteredSlots, setFilteredSlots] = useState([]);
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.appointments);
 
@@ -180,6 +179,7 @@ export default function AppointmentModal({ patientId, open, onClose }) {
         setSelectedTime(null);
         setAppointmentType("Consultation");
         setAvailableSlots([]);
+        setFilteredSlots([]);
       }, 300); // Small delay to ensure animation completes first
     }
   }, [open]);
@@ -217,6 +217,37 @@ export default function AppointmentModal({ patientId, open, onClose }) {
         });
     }
   }, [dispatch, selectedDate, open]);
+
+  // Filter available slots to only show future slots if selected date is today
+  useEffect(() => {
+    if (isToday(selectedDate)) {
+      const now = new Date();
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      
+      // Filter slots that are in the future
+      const futureSlots = availableSlots.filter(slot => {
+        // Parse the time slot (e.g., "14:30")
+        const [hours, minutes] = slot.split(':').map(Number);
+        
+        // Compare with current time
+        if (hours > currentHours) {
+          return true;
+        } else if (hours === currentHours && minutes > currentMinutes) {
+          return true;
+        }
+        return false;
+      });
+      
+      console.log("Current time:", `${currentHours}:${currentMinutes}`);
+      console.log("Filtered future slots:", futureSlots);
+      
+      setFilteredSlots(futureSlots);
+    } else {
+      // If not today, show all available slots
+      setFilteredSlots(availableSlots);
+    }
+  }, [availableSlots, selectedDate]);
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
@@ -352,9 +383,9 @@ export default function AppointmentModal({ patientId, open, onClose }) {
                 )}
                 {!loading && !error && (
                   <Box display="flex" flexWrap="wrap" gap={1.5} mt={2}>
-                    {console.log("Rendering with availableSlots:", availableSlots)}
-                    {Array.isArray(availableSlots) && availableSlots.length > 0 ? (
-                      availableSlots.map((slot) => (
+                    {console.log("Rendering with filteredSlots:", filteredSlots)}
+                    {Array.isArray(filteredSlots) && filteredSlots.length > 0 ? (
+                      filteredSlots.map((slot) => (
                         <TimeSlotButton
                           key={slot}
                           selected={selectedTime === slot}
@@ -365,7 +396,9 @@ export default function AppointmentModal({ patientId, open, onClose }) {
                       ))
                     ) : (
                       <Typography color="error" sx={{ mt: 2, textAlign: "center", width: "100%" }}>
-                        Aucun créneau disponible pour cette date.
+                        {isToday(selectedDate) ? 
+                          "Aucun créneau disponible pour le reste de la journée." : 
+                          "Aucun créneau disponible pour cette date."}
                       </Typography>
                     )}
                   </Box>

@@ -250,12 +250,12 @@ const AdminDashboard = () => {
                         <TableCell>{doctor.speciality}</TableCell>
                         <TableCell>
                           <Chip
-                            label={doctor.status === "active" ? "Actif" : "En attente"}
-                            color={doctor.status === "active" ? "success" : "warning"}
+                            label={doctor.status === "valide" ? "Actif" : "En attente"}
+                            color={doctor.status === "valide" ? "success" : "warning"}
                             size="small"
                             sx={{
                               fontWeight: 500,
-                              ...(doctor.status === "active" && {
+                              ...(doctor.status === "valide" && {
                                 backgroundColor: "#E6F7F0",
                                 color: "#00A76F"
                               }),
@@ -276,7 +276,7 @@ const AdminDashboard = () => {
                           >
                             Détails
                           </Button>
-                          {doctor.status !== "active" && (
+                          {doctor.status !== "valide" && (
                             <>
                               <Button
                                 variant="contained"

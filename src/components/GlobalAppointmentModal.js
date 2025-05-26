@@ -179,8 +179,6 @@ const ConfirmButton = styled(Button)(() => ({
 }));
 
 export default function GlobalAppointmentModal({ patients = [], open, onClose, onAppointmentAdded }) {
-  // Console log to ensure patients are being passed in
-
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(null);
@@ -208,14 +206,10 @@ export default function GlobalAppointmentModal({ patients = [], open, onClose, o
   // Fetch available slots when the date changes AND a patient is selected
   useEffect(() => {
     if (selectedDate && open && selectedPatientId) {
-     
-      
       dispatch(getAvailableSlots(format(selectedDate, "yyyy-MM-dd")))
         .unwrap()
         .then((response) => {
-          
           const slots = response.availableSlots || response;
-          
           
           if (Array.isArray(slots)) {
             setAvailableSlots(slots);
@@ -230,6 +224,32 @@ export default function GlobalAppointmentModal({ patients = [], open, onClose, o
         });
     }
   }, [dispatch, selectedDate, selectedPatientId, open]);
+
+  // This function will filter time slots based on the current time
+  const filterAvailableSlots = (slots, selectedDate) => {
+    // Only apply filtering if the selected date is today
+    if (!isToday(selectedDate)) {
+      return slots;
+    }
+    
+    const currentTime = new Date();
+    const currentHour = currentTime.getHours();
+    const currentMinute = currentTime.getMinutes();
+    
+    return slots.filter(slot => {
+      // Parse the time slot (assuming format like "09:00" or "14:30")
+      const [hours, minutes] = slot.split(':').map(Number);
+      
+      // If hours are greater, the slot is definitely later
+      if (hours > currentHour) return true;
+      
+      // If hours are the same, check minutes
+      if (hours === currentHour && minutes > currentMinute) return true;
+      
+      // Otherwise, the slot is in the past
+      return false;
+    });
+  };
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
@@ -425,15 +445,28 @@ export default function GlobalAppointmentModal({ patients = [], open, onClose, o
                 ) : (
                   <Box display="flex" flexWrap="wrap" gap={1.5} mt={2}>
                     {Array.isArray(availableSlots) && availableSlots.length > 0 ? (
-                      availableSlots.map((slot) => (
-                        <TimeSlotButton
-                          key={slot}
-                          selected={selectedTime === slot}
-                          onClick={() => setSelectedTime(slot)}
-                        >
-                          {slot}
-                        </TimeSlotButton>
-                      ))
+                      (() => {
+                        // Filter available slots if today
+                        const filteredSlots = filterAvailableSlots(availableSlots, selectedDate);
+                        
+                        if (filteredSlots.length === 0) {
+                          return (
+                            <Typography color="info.main" sx={{ mt: 2, textAlign: "center", width: "100%" }}>
+                              Tous les créneaux d'aujourd'hui sont déjà passés.
+                            </Typography>
+                          );
+                        }
+                        
+                        return filteredSlots.map((slot) => (
+                          <TimeSlotButton
+                            key={slot}
+                            selected={selectedTime === slot}
+                            onClick={() => setSelectedTime(slot)}
+                          >
+                            {slot}
+                          </TimeSlotButton>
+                        ));
+                      })()
                     ) : (
                       <Typography color="error" sx={{ mt: 2, textAlign: "center", width: "100%" }}>
                         Aucun créneau disponible pour cette date.

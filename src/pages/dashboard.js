@@ -59,12 +59,47 @@ const Dashboard = () => {
     dispatch(fetchUserProfile());
   }, [dispatch]);
 
+  // This effect runs whenever the location changes
   useEffect(() => {
-    const currentMenuItem = menuItems.find((item) => item.link === location.pathname);
+    updateSelectedMenuItem(location.pathname);
+  }, [location]);
+
+  // Helper function to update selected menu item based on path
+  const updateSelectedMenuItem = (path) => {
+    // First check for exact path matches
+    const currentMenuItem = menuItems.find((item) => item.link === path);
+    
     if (currentMenuItem) {
       setSelectedKey(currentMenuItem.key);
+    } else {
+      // If no exact match, check if the pathname starts with a menu item path
+      // This handles sub-routes like /dashboard/Chats/123
+      const pathParts = path.split('/');
+      if (pathParts.length >= 3) {
+        const basePath = `/${pathParts[1]}/${pathParts[2]}`;
+        const baseMenuItem = menuItems.find((item) => item.link === basePath);
+        if (baseMenuItem) {
+          setSelectedKey(baseMenuItem.key);
+        }
+      }
     }
-  }, [location]);
+  };
+
+  // Listen for custom event to force menu selection update
+  useEffect(() => {
+    const handleMenuSelectionUpdate = (event) => {
+      const { key } = event.detail;
+      if (key) {
+        setSelectedKey(key);
+      }
+    };
+
+    window.addEventListener('menuSelectionUpdate', handleMenuSelectionUpdate);
+    
+    return () => {
+      window.removeEventListener('menuSelectionUpdate', handleMenuSelectionUpdate);
+    };
+  }, []);
 
   // ✅ Logout function
   const logout = async () => {
@@ -121,7 +156,30 @@ const Dashboard = () => {
           zIndex: 10,
         }}
       >
-        <div className="demo-logo-vertical" />
+        {/* Logo Container */}
+        <div 
+          className="logo-container" 
+          style={{ 
+            height: '60px', 
+            padding: collapsed ? '16px 8px' : '20px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: collapsed ? 'center' : 'center',
+            overflow: 'hidden',
+            transition: 'all 0.2s'
+          }}
+        >
+          <img 
+            src="/logo.png" 
+            alt="Logo" 
+            style={{ 
+              maxHeight: '60px', 
+              maxWidth: collapsed ? '80%' : '80%',
+            }} 
+          />
+          
+        </div>
+        
         <Menu
           theme="dark"
           mode="inline"
@@ -220,6 +278,9 @@ const Dashboard = () => {
           }
           .custom-menu .ant-menu-item-selected .anticon {
             color: black !important;
+          }
+          .logo-container {
+            margin: 8px 0;
           }
         `}
       </style>

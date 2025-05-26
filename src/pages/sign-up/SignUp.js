@@ -17,11 +17,11 @@ import AppTheme from '../../components/shared-theme/AppTheme';
 import Grid from '@mui/material/Grid';
 import Tooltip from '@mui/material/Tooltip';
 import { alpha } from '@mui/material/styles';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 
 import { useAuth } from '../../contexts/AuthContext'; // Import AuthContext
 import { useNavigate } from 'react-router-dom'; // For redirection
-
-
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -69,6 +69,22 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
     zIndex: -1,
   },
 }));
+
+const LogoContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  width: '100%',
+  textAlign: 'center',
+}));
+
+// List of medical specialties
+const SPECIALITIES = [
+  "Cardiologue", "Dentiste", "Dermatologue", "Generaliste", "Gynecologue",
+  "Neurologue", "Ophtalmologiste", "Orthopedique", "Pediatre", "Psychiatre",
+  "Radiologue", "Urologue", "Sexologue", "Orl", "Gastro", "Rhumatologue",
+  "Nephrologie", "Pneumologue", "Nutritionniste"
+];
 
 export default function SignUp(props) {
   const { signup } = useAuth(); // Récupérer la fonction signup depuis AuthContext
@@ -198,13 +214,9 @@ export default function SignUp(props) {
   )}
         <Card variant="outlined">
            
-          <Typography
-            component="h1"
-            variant="h4"
-            sx={{ width: '100%', fontSize: 'clamp(2rem, 10vw, 2.15rem)' }}
-          >
-            S'inscrire
-          </Typography>
+          <LogoContainer>
+            <img src="/logo2.png" alt="Logo" width="90" height="90" style={{ marginTop: '-15px', marginBottom: '10px' }} />
+          </LogoContainer>
            
           <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }} onSubmit={handleSubmit}>
             <Grid container spacing={2}>
@@ -220,8 +232,6 @@ export default function SignUp(props) {
                         onChange={handleChange}
                         error={!!errors.firstName} // Red border if error exists
                         placeholder="John"
-                        
-                        
                       />
                     </Tooltip>
                   </FormControl>
@@ -239,7 +249,6 @@ export default function SignUp(props) {
                     onChange={handleChange}
                     error={!!errors.lastName}
                     placeholder="Doe"
-                    
                   />
                   </Tooltip>
                 </FormControl>
@@ -258,11 +267,8 @@ export default function SignUp(props) {
                     onChange={handleChange}
                     error={!!errors.email}
                     placeholder="exemple@email.com"
-                    
-                    
                   />
                   </Tooltip>
-
                 </FormControl>
               </Grid>
 
@@ -278,9 +284,6 @@ export default function SignUp(props) {
                     onChange={handleChange}
                     error={!!errors.phone}
                     placeholder="+216 99 999 999"
-                    
-                    
-                    
                   />
                   </Tooltip>
                 </FormControl>
@@ -298,9 +301,6 @@ export default function SignUp(props) {
                     onChange={handleChange}
                     error={!!errors.cin}
                     placeholder="12345678"
-
-                    
-                    
                   /></Tooltip>
                 </FormControl>
               </Grid>
@@ -317,7 +317,6 @@ export default function SignUp(props) {
                     onChange={handleChange}
                     error={!!errors.address}
                     placeholder="Ville, Pays"
-                    
                   />
                   </Tooltip>
                 </FormControl>
@@ -327,17 +326,25 @@ export default function SignUp(props) {
                 <FormControl fullWidth>
                   <FormLabel>Spécialité</FormLabel>
                   <Tooltip title={errors.speciality || ""} open={!!errors.speciality} arrow>
-                  <TextField
-                    required
-                    fullWidth
-                    name="speciality"
-                    value={formData.speciality}
-                    onChange={handleChange}
-                    error={!!errors.speciality}
-                    placeholder="Dentiste"
-                    
-                    
-                  /></Tooltip>
+                    <Select
+                      required
+                      fullWidth
+                      name="speciality"
+                      value={formData.speciality}
+                      onChange={handleChange}
+                      error={!!errors.speciality}
+                      displayEmpty
+                    >
+                      <MenuItem value="" disabled>
+                        Sélectionnez 
+                      </MenuItem>
+                      {SPECIALITIES.map((specialty) => (
+                        <MenuItem key={specialty} value={specialty}>
+                          {specialty}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </Tooltip>
                 </FormControl>
               </Grid>
 
@@ -353,8 +360,6 @@ export default function SignUp(props) {
                     value={formData.dateOfBirth} // Changed from dob to dateOfBirth
                     onChange={handleChange}
                     error={!!errors.dateOfBirth} // Changed from dob to dateOfBirth
-                    
-                    
                   /></Tooltip>
                 </FormControl>
               </Grid>
@@ -372,20 +377,16 @@ export default function SignUp(props) {
                     onChange={handleChange}
                     error={!!errors.password}
                     placeholder="••••••"
-                    
                   /></Tooltip>
                 </FormControl>
               </Grid>
             </Grid>
-
-            
 
             <Button type="submit" fullWidth variant="contained">
               S'inscrire
             </Button>
           </Box>
 
-          
           <Typography sx={{ textAlign: 'center' }}>
           <Divider>ou</Divider>
             Déjà un compte ? <Link href="/signin" variant="body2">Se connecter</Link>

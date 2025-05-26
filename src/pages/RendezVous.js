@@ -66,7 +66,8 @@ const RendezVous = () => {
     status: '',
     notes: ''
   });
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  // Set "day" as the default filter to show today's appointments
+  const [selectedFilter, setSelectedFilter] = useState('day');
   const [specificDate, setSpecificDate] = useState(null);
   const [isSpecificDateActive, setIsSpecificDateActive] = useState(false);
   const [openDatePicker, setOpenDatePicker] = useState(false);
@@ -107,7 +108,7 @@ const RendezVous = () => {
   const handleDateSelect = (date) => {
     setSpecificDate(date);
     setIsSpecificDateActive(true);
-    setSelectedFilter('all'); // Reset period filter when selecting specific date
+    setSelectedFilter("day"); // Reset period filter when selecting specific date
     setOpenDatePicker(false);
   };
 
@@ -254,6 +255,26 @@ const RendezVous = () => {
                   >
                     <CloseIcon sx={{ fontSize: '0.9rem' }} />
                   </IconButton>
+                </Typography>
+              )}
+              {/* Add today's date badge when "day" filter is active and no specific date is set */}
+              {selectedFilter === 'day' && !isSpecificDateActive && (
+                <Typography 
+                  component="span" 
+                  sx={{ 
+                    ml: 2, 
+                    fontSize: '1rem', 
+                    color: 'primary.main',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    bgcolor: '#e3f2fd',
+                    py: 0.5,
+                    px: 1.5,
+                    borderRadius: 4
+                  }}
+                >
+                  <CalendarTodayIcon sx={{ fontSize: '0.9rem', mr: 0.5 }} />
+                  {format(new Date(), 'dd MMMM yyyy')} (Aujourd'hui)
                 </Typography>
               )}
             </Typography>
@@ -540,7 +561,9 @@ const RendezVous = () => {
                         <Typography variant="body1" color="text.secondary">
                           {isSpecificDateActive && specificDate
                             ? `Pas de rendez-vous pour le ${format(specificDate, 'dd MMMM yyyy')}`
-                            : 'Pas de rendez-vous'
+                            : selectedFilter === 'day'
+                              ? `Pas de rendez-vous pour aujourd'hui (${format(new Date(), 'dd MMMM yyyy')})`
+                              : 'Pas de rendez-vous'
                           }
                         </Typography>
                       </TableCell>
@@ -585,10 +608,7 @@ const RendezVous = () => {
   onClose={() => setOpenAddDialog(false)}
   patients={patients}
   onAppointmentAdded={refreshAppointments} // Add this prop
-
 />
-
-     
     </>
   );
 };

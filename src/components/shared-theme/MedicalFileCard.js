@@ -131,7 +131,7 @@ const MedicalFileCard = ({ patientId }) => {
         }}
       >
         <Typography variant="h5" fontWeight="700">
-          Medical History
+          Historique Médical
         </Typography>
       </Box>
 
@@ -182,7 +182,7 @@ const MedicalFileCard = ({ patientId }) => {
                 <IconButton
                   sx={{ color: "#555" }}
                   aria-expanded={isExpanded}
-                  aria-label="show more"
+                  aria-label="afficher plus"
                 >
                   {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                 </IconButton>
@@ -269,7 +269,7 @@ const MedicalFileCard = ({ patientId }) => {
       >
         <MedicationOutlinedIcon sx={{ mr: 1, color: "#0d47a1" }} />
         <Typography variant="subtitle1" fontWeight="600" color="#0d47a1">
-          Prescriptions
+          Ordonnances
         </Typography>
       </Box>
       <Divider sx={{ mb: 1.5 }} />
@@ -286,11 +286,20 @@ const MedicalFileCard = ({ patientId }) => {
               }}
             >
               
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  wordBreak: "break-word",
+                  whiteSpace: "normal",
+                  mb: 1
+                }}
+              >
+                {prescription.description}
+              </Typography>
               <Chip
-                label={prescription.description}
+                label="Prescription"
                 size="small"
                 sx={{
-                  mt: 0.8,
                   height: 20,
                   fontSize: "0.7rem",
                   backgroundColor: "#e3f2fd",
@@ -454,8 +463,6 @@ const MedicalFileCard = ({ patientId }) => {
         </Box>
       )}
       </CardContent>
-
-      
     </Card>
   );
 };

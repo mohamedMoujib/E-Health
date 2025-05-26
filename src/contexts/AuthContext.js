@@ -152,11 +152,11 @@ useEffect(() => {
 
 const login = async (formData) => {
   try {
-    // Clear any logged out state
+    // Nettoyage des états précédents
     localStorage.removeItem('isLoggedOut');
     localStorage.removeItem('lastRefreshAttempt');
     
-    // Clear any existing tokens
+    // Réinitialisation des tokens
     setAccessToken(null);
     setRole(null);
     
@@ -169,16 +169,41 @@ const login = async (formData) => {
       }
     });
     
-    const newAccessToken = response.data.accessToken;
-    const newRole = response.data.role;
+    const { accessToken: newAccessToken, role: newRole, status: userStatus } = response.data;
     
-    console.log("Login successful:", newAccessToken);
-    console.log("User role:", newRole);
+    // Vérification du rôle
+    if (newRole !== "doctor" && newRole !== "admin") {
+      throw new Error(`Vous essayez de vous connecter en tant que docteur, mais ce compte est un ${newRole}.`);
+    }
     
-    // Store token in localStorage for our checking logic
+    // Vérification du statut pour les docteurs
+    if (newRole === "doctor") {
+      if (userStatus !== "valide") {
+        let errorMessage = "";
+        switch (userStatus) {
+          case "pending":
+            errorMessage = "Veuillez patienter pour l'approbation administrative.";
+            break;
+          case "rejeté":
+            errorMessage = "Votre compte a été rejeté par l'administrateur.";
+            break;
+          case "suspendu":
+            errorMessage = "Votre compte est temporairement suspendu.";
+            break;
+          default:
+            errorMessage = "Statut du compte non reconnu.";
+        }
+        throw new Error(errorMessage);
+      }
+      // Si le statut est "valide", la connexion est autorisée
+    }
+    
+    console.log("Connexion réussie", { newAccessToken, newRole, userStatus });
+    
+    // Stockage du token
     localStorage.setItem('accessToken', newAccessToken);
     
-    // Update state and Redux
+    // Mise à jour du state et Redux
     setAccessToken(newAccessToken);
     setRole(newRole); 
     dispatch(setrole(newRole));
@@ -186,13 +211,20 @@ const login = async (formData) => {
     
     return response.data;
   } catch (error) {
-    // Clean up on login failure
+    console.error("Erreur de connexion:", error);
+    
+    // Nettoyage en cas d'échec
     localStorage.setItem('isLoggedOut', 'true');
     localStorage.removeItem('accessToken');
-    throw error.response?.data?.message || "Authentication failed";
+    
+    // Gestion des erreurs
+    if (error.message && !error.response) {
+      throw error.message;
+    }
+    
+    throw error.response?.data?.message || "Échec de l'authentification. Veuillez vérifier vos identifiants.";
   }
 };
-
   // Signup function
   const signup = async (formData) => {
     try {

@@ -21,6 +21,7 @@ export const fetchPatientsList = createAsyncThunk(
                     headers: { Authorization: `Bearer ${accessToken}` },
                 },
             );
+            console.log("Fetched patients:", response.data);
             return response.data;
         }catch (error) {
             return rejectWithValue(error.message);

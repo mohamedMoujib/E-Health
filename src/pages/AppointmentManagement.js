@@ -273,764 +273,762 @@ const AppointmentManagement = ({ appointment }) => {
     navigate(`/dashboard/Patients/${patientId}`);
   };
 
-  const renderSection = () => {
-    switch (activeSection) {
-      case "notes":
-        return (
-          <Box>
-            <Typography variant="h6" sx={sectionStyles.base}>
-              <Description /> Patient Notes
-            </Typography>
-            
-            <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: '#f8f9fa' }}>
-              <TextField
-                fullWidth
-                label="Title"
-                value={newNote.titre}
-                onChange={(e) => setNewNote({ ...newNote, titre: e.target.value })}
-                sx={{ mb: 2 }}
-                variant="outlined"
-              />
-              <TextField
-                fullWidth
-                multiline
-                rows={4}
-                label="Content"
-                value={newNote.content}
-                onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
-                variant="outlined"
-              />
-              <Button
-                onClick={handleAddNote} 
-                disabled={loading || !newNote.titre || !newNote.content}
-                sx={{ 
-                  ...customButtonStyle, 
-                  mt: 2, 
-                  backgroundColor: colors.primary,
-                  '&:disabled': {
-                    backgroundColor: '#e0e0e0'
-                  }
-                }}
-                variant="contained"
-              >
-                {loading ? <CircularProgress size={24} color="inherit" /> : 'Add Note'}
-              </Button>
-            </Paper>
+const rendreSection = () => {
+  switch (activeSection) {
+    case "notes":
+      return (
+        <Box>
+          <Typography variant="h6" sx={sectionStyles.base}>
+            <Description /> Notes de Patient 
+          </Typography>
+          
+          <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: '#f8f9fa' }}>
+            <TextField
+              fullWidth
+              label="Titre"
+              value={newNote.titre}
+              onChange={(e) => setNewNote({ ...newNote, titre: e.target.value })}
+              sx={{ mb: 2 }}
+              variant="outlined"
+            />
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Contenu"
+              value={newNote.content}
+              onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
+              variant="outlined"
+            />
+            <Button
+              onClick={handleAddNote} 
+              disabled={loading || !newNote.titre || !newNote.content}
+              sx={{ 
+                ...customButtonStyle, 
+                mt: 2, 
+                backgroundColor: colors.primary,
+                '&:disabled': {
+                  backgroundColor: '#e0e0e0'
+                }
+              }}
+              variant="contained"
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Ajouter Note'}
+            </Button>
+          </Paper>
 
-            <Typography variant="subtitle1" sx={{ mb: 2, color: colors.text, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <NoteAdd /> Existing Notes ({notes.length})
-            </Typography>
-            
-            {notes.length > 0 ? (
-              <Stack spacing={2}>
-                {notes.map((note, index) => (
-                  <Paper 
-                    key={index} 
-                    sx={{ 
-                      p: 2, 
-                      borderLeft: `4px solid ${colors.primary}`,
-                      transition: 'box-shadow 0.3s',
-                      '&:hover': {
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                      }
-                    }}
-                  >
-                    <Typography variant="subtitle1" sx={{ color: colors.primary, fontWeight: 'bold' }}>
-                      {note.titre}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: colors.text }}>
-                      {note.content}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: 'block', mt: 1, color: colors.lightText }}>
-                      Added on {new Date().toLocaleDateString()}
-                    </Typography>
-                  </Paper>
-                ))}
-              </Stack>
-            ) : (
-              <Paper elevation={0} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f8f9fa' }}>
-                <Typography variant="body1" color="textSecondary">
-                  No notes added yet. Add your first note above.
-                </Typography>
-              </Paper>
-            )}
-          </Box>
-        );
-      
-      case "prescriptions":
-        return (
-          <Box>
-            <Typography variant="h6" sx={sectionStyles.base}>
-              <MedicalInformation /> Prescriptions
-            </Typography>
-            
-            <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: '#f8f9fa' }}>
-              <TextField
-                label="Prescription Details"
-                value={newPrescription}
-                onChange={(e) => setNewPrescription(e.target.value)}
-                fullWidth
-                multiline
-                rows={4}
-                variant="outlined"
-                placeholder="Enter medication details, dosage, frequency, etc."
-              />
-              <Button
-                onClick={handleAddPrescription} 
-                disabled={loading || !newPrescription}
-                sx={{ 
-                  ...customButtonStyle, 
-                  mt: 2, 
-                  backgroundColor: colors.primary,
-                  '&:disabled': {
-                    backgroundColor: '#e0e0e0'
-                  }
-                }}
-                variant="contained"
-              >
-                {loading ? <CircularProgress size={24} color="inherit" /> : 'Add Prescription'}
-              </Button>
-            </Paper>
-
-            <Typography variant="subtitle1" sx={{ mb: 2, color: colors.text, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <LocalPharmacy /> Existing Prescriptions ({prescriptions.length})
-            </Typography>
-            
-            {prescriptions.length > 0 ? (
-              <Stack spacing={2}>
-                {prescriptions.map((prescription, index) => (
-                  <Paper 
-                    key={index} 
-                    sx={{ 
-                      p: 2, 
-                      borderLeft: `4px solid ${colors.info}`,
-                      backgroundColor: '#f0f8ff'
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ color: colors.text }}>
-                      {prescription.description}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: 'block', mt: 1, color: colors.lightText }}>
-                      Prescribed on {new Date().toLocaleDateString()}
-                    </Typography>
-                  </Paper>
-                ))}
-              </Stack>
-            ) : (
-              <Paper elevation={0} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f8f9fa' }}>
-                <Typography variant="body1" color="textSecondary">
-                  No prescriptions added yet. Add your first prescription above.
-                </Typography>
-              </Paper>
-            )}
-          </Box>
-        );
-      
-      case "diet":
-        return (
-          <Box>
-            <Typography variant="h6" sx={sectionStyles.base}>
-              <Fastfood /> Diet Plan
-            </Typography>
-            
-            <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: '#f8f9fa' }}>
-              <TextField
-                fullWidth
-                label="Diet Type"
-                value={dietPlan.dietType}
-                onChange={(e) => setDietPlan({ ...dietPlan, dietType: e.target.value })}
-                sx={{ mb: 2 }}
-                variant="outlined"
-                placeholder="e.g., Low-carb, Keto, Vegetarian"
-              />
-              <TextField
-                fullWidth
-                multiline
-                rows={4}
-                label="Description"
-                value={dietPlan.description}
-                onChange={(e) => setDietPlan({ ...dietPlan, description: e.target.value })}
-                variant="outlined"
-                placeholder="Detailed diet plan, restrictions, meal suggestions"
-              />
-              <Button
-                onClick={handleAddDiet} 
-                disabled={loading || !dietPlan.dietType || !dietPlan.description}
-                sx={{ 
-                  ...customButtonStyle, 
-                  mt: 2, 
-                  backgroundColor: colors.primary,
-                  '&:disabled': {
-                    backgroundColor: '#e0e0e0'
-                  }
-                }}
-                variant="contained"
-              >
-                {loading ? <CircularProgress size={24} color="inherit" /> : 'Add Diet Plan'}
-              </Button>
-            </Paper>
-
-            <Typography variant="subtitle1" sx={{ mb: 2, color: colors.text, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Restaurant /> Existing Diet Plans ({dietPlans.length})
-            </Typography>
-            
-            {dietPlans.length > 0 ? (
-              <Stack spacing={2}>
-                {dietPlans.map((diet, index) => (
-                  <Paper 
-                    key={index} 
-                    sx={{ 
-                      p: 2, 
-                      borderLeft: `4px solid ${colors.success}`,
-                      backgroundColor: '#f0fff4'
-                    }}
-                  >
-                    <Typography variant="subtitle1" sx={{ color: colors.text, fontWeight: 'bold' }}>
-                      {diet.dietType}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: colors.text }}>
-                      {diet.description}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: 'block', mt: 1, color: colors.lightText }}>
-                      Created on {new Date().toLocaleDateString()}
-                    </Typography>
-                  </Paper>
-                ))}
-              </Stack>
-            ) : (
-              <Paper elevation={0} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f8f9fa' }}>
-                <Typography variant="body1" color="textSecondary">
-                  No diet plans added yet. Add your first diet plan above.
-                </Typography>
-              </Paper>
-            )}
-          </Box>
-        );
-      
-      case 'documents':
-        return (
-          <Box>
-            <Typography variant="h6" sx={sectionStyles.base}>
-              <FileCopy /> Documents
-            </Typography>
-            
-            <Paper elevation={0} sx={{ p: 3, mb: 3, backgroundColor: '#f8f9fa', borderRadius: 2 }}>
-              <Typography variant="subtitle1" sx={{ mb: 2, color: colors.text }}>
-                Upload New Document
+          <Typography variant="subtitle1" sx={{ mb: 2, color: colors.text, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <NoteAdd /> Notes Existantes ({notes.length})
+          </Typography>
+          
+          {notes.length > 0 ? (
+            <Stack spacing={2}>
+              {notes.map((note, index) => (
+                <Paper 
+                  key={index} 
+                  sx={{ 
+                    p: 2, 
+                    borderLeft: `4px solid ${colors.primary}`,
+                    transition: 'box-shadow 0.3s',
+                    '&:hover': {
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }
+                  }}
+                >
+                  <Typography variant="subtitle1" sx={{ color: colors.primary, fontWeight: 'bold' }}>
+                    {note.titre}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: colors.text }}>
+                    {note.content}
+                  </Typography>
+                  <Typography variant="caption" sx={{ display: 'block', mt: 1, color: colors.lightText }}>
+                    Ajoutée le {new Date().toLocaleDateString()}
+                  </Typography>
+                </Paper>
+              ))}
+            </Stack>
+          ) : (
+            <Paper elevation={0} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f8f9fa' }}>
+              <Typography variant="body1" color="textSecondary">
+                Aucune note ajoutée. Ajoutez votre première note ci-dessus.
               </Typography>
+            </Paper>
+          )}
+        </Box>
+      );
+    
+    case "prescriptions":
+      return (
+        <Box>
+          <Typography variant="h6" sx={sectionStyles.base}>
+            <MedicalInformation /> Ordonnances
+          </Typography>
+          
+          <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: '#f8f9fa' }}>
+            <TextField
+              label="Détails de l'Ordonnance"
+              value={newPrescription}
+              onChange={(e) => setNewPrescription(e.target.value)}
+              fullWidth
+              multiline
+              rows={4}
+              variant="outlined"
+              placeholder="Entrez les détails du médicament, la posologie, la fréquence, etc."
+            />
+            <Button
+              onClick={handleAddPrescription} 
+              disabled={loading || !newPrescription}
+              sx={{ 
+                ...customButtonStyle, 
+                mt: 2, 
+                backgroundColor: colors.primary,
+                '&:disabled': {
+                  backgroundColor: '#e0e0e0'
+                }
+              }}
+              variant="contained"
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Ajouter Ordonnance'}
+            </Button>
+          </Paper>
+
+          <Typography variant="subtitle1" sx={{ mb: 2, color: colors.text, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LocalPharmacy /> Ordonnances Existantes ({prescriptions.length})
+          </Typography>
+          
+          {prescriptions.length > 0 ? (
+            <Stack spacing={2}>
+              {prescriptions.map((prescription, index) => (
+                <Paper 
+                  key={index} 
+                  sx={{ 
+                    p: 2, 
+                    borderLeft: `4px solid ${colors.info}`,
+                    backgroundColor: '#f0f8ff'
+                  }}
+                >
+                  <Typography variant="body2" sx={{ color: colors.text }}>
+                    {prescription.description}
+                  </Typography>
+                  <Typography variant="caption" sx={{ display: 'block', mt: 1, color: colors.lightText }}>
+                    Prescrite le {new Date().toLocaleDateString()}
+                  </Typography>
+                </Paper>
+              ))}
+            </Stack>
+          ) : (
+            <Paper elevation={0} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f8f9fa' }}>
+              <Typography variant="body1" color="textSecondary">
+                Aucune ordonnance ajoutée. Ajoutez votre première ordonnance ci-dessus.
+              </Typography>
+            </Paper>
+          )}
+        </Box>
+      );
+    
+    case "diet":
+      return (
+        <Box>
+          <Typography variant="h6" sx={sectionStyles.base}>
+            <Fastfood /> Plan Alimentaire
+          </Typography>
+          
+          <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: '#f8f9fa' }}>
+            <TextField
+              fullWidth
+              label="Type de Régime"
+              value={dietPlan.dietType}
+              onChange={(e) => setDietPlan({ ...dietPlan, dietType: e.target.value })}
+              sx={{ mb: 2 }}
+              variant="outlined"
+              placeholder="ex: Faible en glucides, Keto, Végétarien"
+            />
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Description"
+              value={dietPlan.description}
+              onChange={(e) => setDietPlan({ ...dietPlan, description: e.target.value })}
+              variant="outlined"
+              placeholder="Plan alimentaire détaillé, restrictions, suggestions de repas"
+            />
+            <Button
+              onClick={handleAddDiet} 
+              disabled={loading || !dietPlan.dietType || !dietPlan.description}
+              sx={{ 
+                ...customButtonStyle, 
+                mt: 2, 
+                backgroundColor: colors.primary,
+                '&:disabled': {
+                  backgroundColor: '#e0e0e0'
+                }
+              }}
+              variant="contained"
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Ajouter Plan Alimentaire'}
+            </Button>
+          </Paper>
+
+          <Typography variant="subtitle1" sx={{ mb: 2, color: colors.text, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Restaurant /> Plans Alimentaires Existants ({dietPlans.length})
+          </Typography>
+          
+          {dietPlans.length > 0 ? (
+            <Stack spacing={2}>
+              {dietPlans.map((diet, index) => (
+                <Paper 
+                  key={index} 
+                  sx={{ 
+                    p: 2, 
+                    borderLeft: `4px solid ${colors.success}`,
+                    backgroundColor: '#f0fff4'
+                  }}
+                >
+                  <Typography variant="subtitle1" sx={{ color: colors.text, fontWeight: 'bold' }}>
+                    {diet.dietType}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: colors.text }}>
+                    {diet.description}
+                  </Typography>
+                  <Typography variant="caption" sx={{ display: 'block', mt: 1, color: colors.lightText }}>
+                    Créé le {new Date().toLocaleDateString()}
+                  </Typography>
+                </Paper>
+              ))}
+            </Stack>
+          ) : (
+            <Paper elevation={0} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f8f9fa' }}>
+              <Typography variant="body1" color="textSecondary">
+                Aucun plan alimentaire ajouté. Ajoutez votre premier plan alimentaire ci-dessus.
+              </Typography>
+            </Paper>
+          )}
+        </Box>
+      );
+    
+    case 'documents':
+      return (
+        <Box>
+          <Typography variant="h6" sx={sectionStyles.base}>
+            <FileCopy /> Documents
+          </Typography>
+          
+          <Paper elevation={0} sx={{ p: 3, mb: 3, backgroundColor: '#f8f9fa', borderRadius: 2 }}>
+            <Typography variant="subtitle1" sx={{ mb: 2, color: colors.text }}>
+              Télécharger un Nouveau Document
+            </Typography>
+            
+            <Stack spacing={2}>
+              <TextField
+                fullWidth
+                label="Titre du Document"
+                value={newDocument.title}
+                onChange={(e) => setNewDocument(prev => ({ ...prev, title: e.target.value }))}
+                required
+                variant="outlined"
+              />
               
-              <Stack spacing={2}>
-                <TextField
-                  fullWidth
-                  label="Document Title"
-                  value={newDocument.title}
-                  onChange={(e) => setNewDocument(prev => ({ ...prev, title: e.target.value }))}
-                  required
-                  variant="outlined"
-                />
-                
-                <TextField
-                  fullWidth
-                  label="Document Description"
-                  value={newDocument.description}
-                  onChange={(e) => setNewDocument(prev => ({ ...prev, description: e.target.value }))}
-                  multiline
-                  rows={3}
-                  variant="outlined"
-                />
-                
-                <Box>
-                  <Button
-                    variant="contained"
-                    component="label"
-                    startIcon={<CloudUpload />}
-                    sx={{ 
-                      ...customButtonStyle,
-                      backgroundColor: colors.primary, 
-                      '&:hover': { backgroundColor: colors.accent } 
-                    }}
-                  >
-                    Select File
-                    <input
-                      type="file"
-                      hidden
-                      accept="image/*,application/pdf" 
-                      onChange={handleDocumentUpload}
-                    />
-                  </Button>
-                  
-                  {newDocument.file && (
-                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2">
-                        Selected: {newDocument.file.name}
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        ({Math.round(newDocument.file.size / 1024)} KB)
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-                
-                <Button 
-                  variant="contained" 
-                  onClick={handleAddDocument}
-                  disabled={!newDocument.file || !newDocument.title || loading}
+              <TextField
+                fullWidth
+                label="Description du Document"
+                value={newDocument.description}
+                onChange={(e) => setNewDocument(prev => ({ ...prev, description: e.target.value }))}
+                multiline
+                rows={3}
+                variant="outlined"
+              />
+              
+              <Box>
+                <Button
+                  variant="contained"
+                  component="label"
+                  startIcon={<CloudUpload />}
                   sx={{ 
                     ...customButtonStyle,
                     backgroundColor: colors.primary, 
-                    '&:hover': { backgroundColor: colors.secondary },
-                    '&.Mui-disabled': {
-                      backgroundColor: '#e0e0e0'
-                    }
+                    '&:hover': { backgroundColor: colors.accent } 
                   }}
                 >
-                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Upload Document'}
+                  Sélectionner Fichier
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*,application/pdf" 
+                    onChange={handleDocumentUpload}
+                  />
                 </Button>
-              </Stack>
-            </Paper>
-
-            <Typography variant="subtitle1" sx={{ mb: 2, color: colors.text, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <FileCopy /> Existing Documents ({documents.length})
-            </Typography>
-            
-            {documents.length > 0 ? (
-              <Grid container spacing={2}>
-                {documents.map((doc, index) => (
-                  <Grid item xs={12} sm={6} md={4} key={index}>
-                    <Paper 
-                      elevation={0}
-                      sx={{ 
-                        p: 2, 
-                        height: '100%',
-                        border: `1px solid #e0e0e0`,
-                        borderRadius: 2,
-                        transition: 'all 0.3s',
-                        '&:hover': {
-                          borderColor: colors.primary,
-                          boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-                          cursor: 'pointer'
-                        }
-                      }}
-                      onClick={() => {
-                        const fileUrl = doc.fileUrl || doc.file || doc.url;
-                        if (fileUrl) {
-                          window.open(fileUrl, '_blank');
-                        } else {
-                          alert("No file available for this document.");
-                        }
-                      }}
-                    >
-                      <Stack spacing={1}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {doc.fileType?.startsWith('image/') ? (
-                            <Description color="primary" />
-                          ) : (
-                            <Description color="secondary" />
-                          )}
-                          <Typography variant="subtitle1" sx={{ color: colors.primary, fontWeight: 500 }}>
-                            {doc.title}
-                          </Typography>
-                        </Box>
-                        
-                        {doc.description && (
-                          <Typography variant="body2" sx={{ color: colors.text }}>
-                            {doc.description}
-                          </Typography>
-                        )}
-                        
-                        <Typography variant="caption" sx={{ color: colors.lightText }}>
-                          {doc.fileName}
-                        </Typography>
-                      </Stack>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-            ) : (
-              <Paper elevation={0} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f8f9fa' }}>
-                <Typography variant="body1" color="textSecondary">
-                  No documents uploaded yet.
-                </Typography>
-              </Paper>
-            )}
-          </Box>
-        );
-      
-      default:
-        return (
-          <Box>
-            <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={sectionStyles.base}>
-                <Event /> Appointment Overview
-              </Typography>
-              <Chip 
-                label={currentAppointment.status.toUpperCase()} 
-                color={getStatusColor(currentAppointment.status)}
-                sx={{ 
-                  fontWeight: 600,
-                  letterSpacing: 0.5
-                }}
-              />
-            </Box>
-            
-            <Paper elevation={0} sx={{ p: 3, mb: 3, backgroundColor: '#f8f9fa', borderRadius: 2 }}>
-              <Stack spacing={3}>
-                <Box display="flex" alignItems="center" gap={3}>
-                  <Avatar 
-                    src={currentPatient.image} 
-                    sx={{ 
-                      width: 80, 
-                      height: 80,
-                      border: `2px solid ${colors.primary}` 
-                    }}
-                  >
-                    <Person sx={{ fontSize: 40 }} />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h5" sx={{ color: colors.text, fontWeight: 600 }}>
-                      {currentPatient.firstName} {currentPatient.lastName}
+                
+                {newDocument.file && (
+                  <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2">
+                      Sélectionné: {newDocument.file.name}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: colors.lightText }}>
-                      Patient ID: {patientId}
+                    <Typography variant="caption" color="textSecondary">
+                      ({Math.round(newDocument.file.size / 1024)} KB)
                     </Typography>
                   </Box>
-                </Box>
-                
-                <Divider />
-                
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Event sx={{color:colors.primary}} />
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ color: colors.lightText }}>
-                          Appointment Date
-                        </Typography>
-                        <Typography variant="body1" sx={{ color: colors.text, fontWeight: 500 }}>
-                          {new Date(currentAppointment.date).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Schedule sx={{color:colors.primary}} />
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ color: colors.lightText }}>
-                          Appointment Time
-                        </Typography>
-                        <Typography variant="body1" sx={{ color: colors.text, fontWeight: 500 }}>
-                          {currentAppointment.time}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Grid>
-                </Grid>
-                
-                {statusUpdateError && (
-                  <Paper elevation={0} sx={{ p: 2, backgroundColor: '#fff0f0', borderLeft: `4px solid ${colors.error}` }}>
-                    <Typography color="error">{statusUpdateError}</Typography>
-                  </Paper>
                 )}
-                
-                <Box>
-                 
-                  
-                  <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2 }}>
-                    <Tooltip title="Confirm this appointment">
-                      <Button 
-                        variant="contained" 
-                        startIcon={<CheckCircle />}
-                        disabled={currentAppointment.status === 'confirmed'}
-                        sx={{ 
-                          ...customButtonStyle,
-                          backgroundColor: colors.success,
-                          '&:hover': { backgroundColor: '#1e9c65' },
-                          '&:disabled': {
-                            backgroundColor: '#e0e0e0',
-                            color: '#a0a0a0'
-                          }
-                        }}
-                        onClick={() => handleStatusUpdate('confirmed')}
-                      >
-                        Confirm
-                      </Button>
-                    </Tooltip>
-                    
-                    <Tooltip title="Mark as completed">
-                      <Button 
-                        variant="contained" 
-                        startIcon={<CheckCircle />}
-                        disabled={currentAppointment.status === 'completed'}
-                        sx={{ 
-                          ...customButtonStyle,
-                          backgroundColor: colors.primary,
-                          '&:hover': { backgroundColor: '#1565c0' },
-                          '&:disabled': {
-                            backgroundColor: '#e0e0e0',
-                            color: '#a0a0a0'
-                          }
-                        }}
-                        onClick={() => handleStatusUpdate('completed')}
-                      >
-                        Complete
-                      </Button>
-                    </Tooltip>
-                    
-                    <Tooltip title="Cancel this appointment">
-                      <Button 
-                        variant="contained" 
-                        startIcon={<Cancel />}
-                        disabled={currentAppointment.status === 'canceled'}
-                        sx={{ 
-                          ...customButtonStyle,
-                          backgroundColor: colors.error,
-                          '&:hover': { backgroundColor: '#c62828' },
-                          '&:disabled': {
-                            backgroundColor: '#e0e0e0',
-                            color: '#a0a0a0'
-                          }
-                        }}
-                        onClick={() => handleStatusUpdate('canceled')}
-                      >
-                        Cancel
-                      </Button>
-                    </Tooltip>
-                    <Tooltip title="Reschedule this appointment">
-                        <Button 
-                          variant="contained" 
-                          startIcon={<Event />}
-                          disabled={['canceled', 'completed'].includes(currentAppointment.status)}
-                          sx={{ 
-                            ...customButtonStyle,
-                            backgroundColor: colors.warning,
-                            '&:hover': { backgroundColor: '#ff9800' },
-                            '&:disabled': {
-                              backgroundColor: '#e0e0e0',
-                              color: '#a0a0a0'
-                            }
-                          }}
-                          onClick={() => setRescheduleOpen(true)}
-                        >
-                          Reschedule
-                        </Button>
-                      </Tooltip>
-                  </Stack>
-                </Box>
-              </Stack>
-            </Paper>
-            
-            <Typography variant="h6" sx={{ ...sectionStyles.base, mt: 4 }}>
-              Quick Actions
-            </Typography>
-            
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<NoteAdd />}
-                  onClick={() => setActiveSection('notes')}
-                  sx={{ 
-                    ...customButtonStyle,
-                    height: '100%',
-                    py: 3,
-                    borderColor: colors.primary,
-                    color: colors.primary,
-                    '&:hover': {
-                      backgroundColor: `${colors.primary}10`,
-                      borderColor: colors.primary
-                    }
-                  }}
-                >
-                  Add Note
-                </Button>
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} sm={6} md={3}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<LocalPharmacy />}
-                  onClick={() => setActiveSection('prescriptions')}
-                  sx={{ 
-                    ...customButtonStyle,
-                    height: '100%',
-                    py: 3,
-                    borderColor: colors.primary,
-                    color: colors.primary,
-                    '&:hover': {
-                      backgroundColor: `${colors.primary}10`,
-                      borderColor: colors.primary
-                    }
-                  }}
-                >
-                  Add Prescription
-                </Button>
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={3}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<Restaurant />}
-                  onClick={() => setActiveSection('diet')}
-                  sx={{ 
-                    ...customButtonStyle,
-                    height: '100%',
-                    py: 3,
-                    borderColor: colors.primary,
-                    color: colors.primary,
-                    '&:hover': {
-                      backgroundColor: `${colors.primary}10`,
-                      borderColor: colors.primary
-                    }
-                  }}
-                >
-                  Add Diet Plan
-                </Button>
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={3}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<FileCopy />}
-                  onClick={() => setActiveSection('documents')}
-                  sx={{ 
-                    ...customButtonStyle,
-                    height: '100%',
-                    py: 3,
-                    borderColor: colors.primary,
-                    color: colors.primary,
-                    '&:hover': {
-                      backgroundColor: `${colors.primary}10`,
-                      borderColor: colors.primary
-                    }
-                  }}
-                >
-                  Upload Document
-                </Button>
-              </Grid>
-            </Grid>
-          </Box>
-        );
-    }
-  };
-
-  const sidebarNavItems = [
-    { label: 'Overview', icon: <Person />, section: 'overview', badge: 0 },
-    { label: 'Notes', icon: <NoteAdd />, section: 'notes', badge: notes.length },
-    { label: 'Prescriptions', icon: <LocalPharmacy />, section: 'prescriptions', badge: prescriptions.length },
-    { label: 'Diet Plan', icon: <Restaurant />, section: 'diet', badge: dietPlans.length },
-    { label: 'Documents', icon: <FileCopy />, section: 'documents', badge: documents.length },
-  ];
-
-  return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
-      <Grid container spacing={3}>
-        {/* Sidebar Navigation */}
-        <Grid item xs={12} md={3}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 2,
-              height: '100%',
-              border: `1px solid #e0e0e0`,
-              borderRadius: 3,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-              backgroundColor: 'white'
-            }}
-          >
-            <Tooltip title="Back to patient profile">
-              <IconButton 
-                onClick={onNavigateBack} 
+              <Button 
+                variant="contained" 
+                onClick={handleAddDocument}
+                disabled={!newDocument.file || !newDocument.title || loading}
                 sx={{ 
-                  mb: 2,
-                  backgroundColor: `${colors.primary}10`,
-                  '&:hover': { 
-                    backgroundColor: `${colors.primary}20` 
-                  } 
+                  ...customButtonStyle,
+                  backgroundColor: colors.primary, 
+                  '&:hover': { backgroundColor: colors.secondary },
+                  '&.Mui-disabled': {
+                    backgroundColor: '#e0e0e0'
+                  }
                 }}
               >
-                <ArrowBack sx={{ color: colors.primary }} />
-              </IconButton>
-            </Tooltip>
-            
-            <Typography variant="subtitle1" sx={{ mb: 2, color: colors.primary, fontWeight: 600 }}>
-              Appointment Sections
-            </Typography>
-            
-            <Stack spacing={1}>
-              {sidebarNavItems.map((item) => (
-                <Tooltip key={item.section} title={item.label} placement="right">
-                  <Button
-                    fullWidth
-                    startIcon={item.icon}
-                    onClick={() => setActiveSection(item.section)}
-                    sx={{
-                      ...customButtonStyle,
-                      justifyContent: 'flex-start',
-                      px: 2,
-                      py: 1.5,
-                      color: activeSection === item.section ? 'white' : colors.text,
-                      backgroundColor: activeSection === item.section ? colors.primary : 'transparent',
+                {loading ? <CircularProgress size={24} color="inherit" /> : 'Télécharger Document'}
+              </Button>
+            </Stack>
+          </Paper>
+
+          <Typography variant="subtitle1" sx={{ mb: 2, color: colors.text, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FileCopy /> Documents Existants ({documents.length})
+          </Typography>
+          
+          {documents.length > 0 ? (
+            <Grid container spacing={2}>
+              {documents.map((doc, index) => (
+                <Grid item xs={12} sm={6} md={4} key={index}>
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 2, 
+                      height: '100%',
+                      border: `1px solid #e0e0e0`,
+                      borderRadius: 2,
+                      transition: 'all 0.3s',
                       '&:hover': {
-                        backgroundColor: activeSection === item.section ? colors.primary : `${colors.primary}10`,
+                        borderColor: colors.primary,
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                        cursor: 'pointer'
+                      }
+                    }}
+                    onClick={() => {
+                      const fileUrl = doc.fileUrl || doc.file || doc.url;
+                      if (fileUrl) {
+                        window.open(fileUrl, '_blank');
+                      } else {
+                        alert("Aucun fichier disponible pour ce document.");
                       }
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                      <span>{item.label}</span>
-                      {item.badge > 0 && (
-                        <Chip 
-                          label={item.badge} 
-                          size="small" 
-                          sx={{ 
-                            backgroundColor: activeSection === item.section ? 'white' : `${colors.primary}20`,
-                            color: activeSection === item.section ? colors.primary : colors.text,
-                            fontWeight: 600
-                          }}
-                        />
+                    <Stack spacing={1}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {doc.fileType?.startsWith('image/') ? (
+                          <Description color="primary" />
+                        ) : (
+                          <Description color="secondary" />
+                        )}
+                        <Typography variant="subtitle1" sx={{ color: colors.primary, fontWeight: 500 }}>
+                          {doc.title}
+                        </Typography>
+                      </Box>
+                      
+                      {doc.description && (
+                        <Typography variant="body2" sx={{ color: colors.text }}>
+                          {doc.description}
+                        </Typography>
                       )}
-                    </Box>
-                  </Button>
-                </Tooltip>
+                      
+                      <Typography variant="caption" sx={{ color: colors.lightText }}>
+                        {doc.fileName}
+                      </Typography>
+                    </Stack>
+                  </Paper>
+                </Grid>
               ))}
+            </Grid>
+          ) : (
+            <Paper elevation={0} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f8f9fa' }}>
+              <Typography variant="body1" color="textSecondary">
+                Aucun document téléchargé.
+              </Typography>
+            </Paper>
+          )}
+        </Box>
+      );
+    
+    default:
+      return (
+        <Box>
+          <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+            <Typography variant="h6" sx={sectionStyles.base}>
+              <Event /> Aperçu du Rendez-vous
+            </Typography>
+            <Chip 
+              label={currentAppointment.status.toUpperCase()} 
+              color={getStatusColor(currentAppointment.status)}
+              sx={{ 
+                fontWeight: 600,
+                letterSpacing: 0.5
+              }}
+            />
+          </Box>
+          
+          <Paper elevation={0} sx={{ p: 3, mb: 3, backgroundColor: '#f8f9fa', borderRadius: 2 }}>
+            <Stack spacing={3}>
+              <Box display="flex" alignItems="center" gap={3}>
+                <Avatar 
+                  src={currentPatient.image} 
+                  sx={{ 
+                    width: 80, 
+                    height: 80,
+                    border: `2px solid ${colors.primary}` 
+                  }}
+                >
+                  <Person sx={{ fontSize: 40 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="h5" sx={{ color: colors.text, fontWeight: 600 }}>
+                    {currentPatient.firstName} {currentPatient.lastName}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: colors.lightText }}>
+                    ID Patient: {patientId}
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <Divider />
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Event sx={{color:colors.primary}} />
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ color: colors.lightText }}>
+                        Date du Rendez-vous
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: colors.text, fontWeight: 500 }}>
+                        {new Date(currentAppointment.date).toLocaleDateString('fr-FR', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Schedule sx={{color:colors.primary}} />
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ color: colors.lightText }}>
+                        Heure du Rendez-vous
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: colors.text, fontWeight: 500 }}>
+                        {currentAppointment.time}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+              
+              {statusUpdateError && (
+                <Paper elevation={0} sx={{ p: 2, backgroundColor: '#fff0f0', borderLeft: `4px solid ${colors.error}` }}>
+                  <Typography color="error">{statusUpdateError}</Typography>
+                </Paper>
+              )}
+              
+              <Box>
+                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2 }}>
+                  <Tooltip title="Confirmer ce rendez-vous">
+                    <Button 
+                      variant="contained" 
+                      startIcon={<CheckCircle />}
+                      disabled={currentAppointment.status === 'confirmed'}
+                      sx={{ 
+                        ...customButtonStyle,
+                        backgroundColor: colors.success,
+                        '&:hover': { backgroundColor: '#1e9c65' },
+                        '&:disabled': {
+                          backgroundColor: '#e0e0e0',
+                          color: '#a0a0a0'
+                        }
+                      }}
+                      onClick={() => handleStatusUpdate('confirmed')}
+                    >
+                      Confirmer
+                    </Button>
+                  </Tooltip>
+                  
+                  <Tooltip title="Marquer comme terminé">
+                    <Button 
+                      variant="contained" 
+                      startIcon={<CheckCircle />}
+                      disabled={currentAppointment.status === 'completed'}
+                      sx={{ 
+                        ...customButtonStyle,
+                        backgroundColor: colors.primary,
+                        '&:hover': { backgroundColor: '#1565c0' },
+                        '&:disabled': {
+                          backgroundColor: '#e0e0e0',
+                          color: '#a0a0a0'
+                        }
+                      }}
+                      onClick={() => handleStatusUpdate('completed')}
+                    >
+                      Terminer
+                    </Button>
+                  </Tooltip>
+                  
+                  <Tooltip title="Annuler ce rendez-vous">
+                    <Button 
+                      variant="contained" 
+                      startIcon={<Cancel />}
+                      disabled={currentAppointment.status === 'canceled'}
+                      sx={{ 
+                        ...customButtonStyle,
+                        backgroundColor: colors.error,
+                        '&:hover': { backgroundColor: '#c62828' },
+                        '&:disabled': {
+                          backgroundColor: '#e0e0e0',
+                          color: '#a0a0a0'
+                        }
+                      }}
+                      onClick={() => handleStatusUpdate('canceled')}
+                    >
+                      Annuler
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Reprogrammer ce rendez-vous">
+                    <Button 
+                      variant="contained" 
+                      startIcon={<Event />}
+                      disabled={['canceled', 'completed'].includes(currentAppointment.status)}
+                      sx={{ 
+                        ...customButtonStyle,
+                        backgroundColor: colors.warning,
+                        '&:hover': { backgroundColor: '#ff9800' },
+                        '&:disabled': {
+                          backgroundColor: '#e0e0e0',
+                          color: '#a0a0a0'
+                        }
+                      }}
+                      onClick={() => setRescheduleOpen(true)}
+                    >
+                      Reprogrammer
+                    </Button>
+                  </Tooltip>
+                </Stack>
+              </Box>
             </Stack>
           </Paper>
-        </Grid>
+          
+          <Typography variant="h6" sx={{ ...sectionStyles.base, mt: 4 }}>
+            Actions Rapides
+          </Typography>
+          
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<NoteAdd />}
+                onClick={() => setActiveSection('notes')}
+                sx={{ 
+                  ...customButtonStyle,
+                  height: '100%',
+                  py: 3,
+                  borderColor: colors.primary,
+                  color: colors.primary,
+                  '&:hover': {
+                    backgroundColor: `${colors.primary}10`,
+                    borderColor: colors.primary
+                  }
+                }}
+              >
+                Ajouter Note
+              </Button>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<LocalPharmacy />}
+                onClick={() => setActiveSection('prescriptions')}
+                sx={{ 
+                  ...customButtonStyle,
+                  height: '100%',
+                  py: 3,
+                  borderColor: colors.primary,
+                  color: colors.primary,
+                  '&:hover': {
+                    backgroundColor: `${colors.primary}10`,
+                    borderColor: colors.primary
+                  }
+                }}
+              >
+                Ajouter Ordonnance
+              </Button>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<Restaurant />}
+                onClick={() => setActiveSection('diet')}
+                sx={{ 
+                  ...customButtonStyle,
+                  height: '100%',
+                  py: 3,
+                  borderColor: colors.primary,
+                  color: colors.primary,
+                  '&:hover': {
+                    backgroundColor: `${colors.primary}10`,
+                    borderColor: colors.primary
+                  }
+                }}
+              >
+                Ajouter Plan Alimentaire
+              </Button>
+            </Grid>
+            
+            <Grid item xs={12} sm={6} md={3}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<FileCopy />}
+                onClick={() => setActiveSection('documents')}
+                sx={{ 
+                  ...customButtonStyle,
+                  height: '100%',
+                  py: 3,
+                  borderColor: colors.primary,
+                  color: colors.primary,
+                  '&:hover': {
+                    backgroundColor: `${colors.primary}10`,
+                    borderColor: colors.primary
+                  }
+                }}
+              >
+                Télécharger Document
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+      );
+  }
+};
 
-        {/* Main Content Area */}
-        <Grid item xs={12} md={9}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: { xs: 2, md: 4 },
-              minHeight: '70vh',
-              border: `1px solid #e0e0e0`,
-              borderRadius: 3,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-              backgroundColor: 'white'
-            }}
-          >
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-                <CircularProgress size={60} sx={{ color: colors.primary }} />
-              </Box>
-            ) : (
-              renderSection()
-            )}
-          </Paper>
-        </Grid>
+  const elementsBareNavigation = [
+  { label: 'Aperçu', icon: <Person />, section: 'overview', badge: 0 },
+  { label: 'Notes', icon: <NoteAdd />, section: 'notes', badge: notes.length },
+  { label: 'Ordonnances', icon: <LocalPharmacy />, section: 'prescriptions', badge: prescriptions.length },
+  { label: 'Plan Alimentaire', icon: <Restaurant />, section: 'diet', badge: dietPlans.length },
+  { label: 'Documents', icon: <FileCopy />, section: 'documents', badge: documents.length },
+];
+
+return (
+  <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Grid container spacing={3}>
+      {/* Navigation Latérale */}
+      <Grid item xs={12} md={3}>
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: 2,
+            height: '100%',
+            border: `1px solid #e0e0e0`,
+            borderRadius: 3,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+            backgroundColor: 'white'
+          }}
+        >
+          <Tooltip title="Retour au profil patient">
+            <IconButton 
+              onClick={onNavigateBack} 
+              sx={{ 
+                mb: 2,
+                backgroundColor: `${colors.primary}10`,
+                '&:hover': { 
+                  backgroundColor: `${colors.primary}20` 
+                } 
+              }}
+            >
+              <ArrowBack sx={{ color: colors.primary }} />
+            </IconButton>
+          </Tooltip>
+          
+          <Typography variant="subtitle1" sx={{ mb: 2, color: colors.primary, fontWeight: 600 }}>
+            Sections du Rendez-vous
+          </Typography>
+          
+          <Stack spacing={1}>
+            {elementsBareNavigation.map((item) => (
+              <Tooltip key={item.section} title={item.label} placement="right">
+                <Button
+                  fullWidth
+                  startIcon={item.icon}
+                  onClick={() => setActiveSection(item.section)}
+                  sx={{
+                    ...customButtonStyle,
+                    justifyContent: 'flex-start',
+                    px: 2,
+                    py: 1.5,
+                    color: activeSection === item.section ? 'white' : colors.text,
+                    backgroundColor: activeSection === item.section ? colors.primary : 'transparent',
+                    '&:hover': {
+                      backgroundColor: activeSection === item.section ? colors.primary : `${colors.primary}10`,
+                    }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span>{item.label}</span>
+                    {item.badge > 0 && (
+                      <Chip 
+                        label={item.badge} 
+                        size="small" 
+                        sx={{ 
+                          backgroundColor: activeSection === item.section ? 'white' : `${colors.primary}20`,
+                          color: activeSection === item.section ? colors.primary : colors.text,
+                          fontWeight: 600
+                        }}
+                      />
+                    )}
+                  </Box>
+                </Button>
+              </Tooltip>
+            ))}
+          </Stack>
+        </Paper>
       </Grid>
-      <RescheduleModal
+
+      {/* Zone de Contenu Principal */}
+      <Grid item xs={12} md={9}>
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: { xs: 2, md: 4 },
+            minHeight: '70vh',
+            border: `1px solid #e0e0e0`,
+            borderRadius: 3,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+            backgroundColor: 'white'
+          }}
+        >
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+              <CircularProgress size={60} sx={{ color: colors.primary }} />
+            </Box>
+          ) : (
+            rendreSection()
+          )}
+        </Paper>
+      </Grid>
+    </Grid>
+    <RescheduleModal
       open={rescheduleOpen}
       onClose={() => setRescheduleOpen(false)}
       onSuccess={() => {
@@ -1039,8 +1037,8 @@ const AppointmentManagement = ({ appointment }) => {
       appointment={currentAppointment}
       patientId={patientId}
     />
-    </Container>
-  );
+  </Container>
+);
 };
 
 export default AppointmentManagement;

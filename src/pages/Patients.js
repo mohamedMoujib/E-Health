@@ -19,15 +19,10 @@ import {
   InputAdornment,
   Card,
   CardContent,
-  InputLabel,
-  MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  FormControl,
-  Select,
-  Grid
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -39,96 +34,61 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchPatientsList, setCurrentPatient } from '../Redux/slices/patientsSlice';
 import { fetchUserProfile } from '../Redux/slices/userSlice';
+import CreatePatientModal from '../components/CreatePatientModal'; // Import the modal component
+
 const Patients = () => {
   const dispatch = useDispatch();
   const { list: patients, status, error } = useSelector((state) => state.patients);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage] = useState(5);
-  const [openAddDialog, setOpenAddDialog] = useState(false);
+  
+  // Updated state management for CreatePatientModal
+  const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [patientToEdit, setPatientToEdit] = useState(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState(null);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
-    address: '',
-    cin: '',
-    dateOfBirth: ''
-  });
-  const [isEditing, setIsEditing] = useState(false);
 
   const profile = useSelector((state) => state.user.profile);
-const loadingProfile = useSelector((state) => state.user.loading);
-const navigate = useNavigate();
-useEffect(() => {
-  if (!profile && !loadingProfile) {
+  const loadingProfile = useSelector((state) => state.user.loading);
+  const navigate = useNavigate();
 
-    dispatch(fetchUserProfile()).then((res) => {
-    }).catch(err => console.error("Error fetching profile:", err));
-  }
-}, [dispatch, profile, loadingProfile]);
+  useEffect(() => {
+    if (!profile && !loadingProfile) {
+      dispatch(fetchUserProfile()).then((res) => {
+      }).catch(err => console.error("Error fetching profile:", err));
+    }
+  }, [dispatch, profile, loadingProfile]);
 
+  useEffect(() => {
+    if (profile?._id) {
+      console.log("Dispatching fetchPatientsList with doctorId:", profile._id);
+      dispatch(fetchPatientsList());
+    }
+  }, [dispatch, profile]);
 
-useEffect(() => {
+  // Handle opening the CreatePatientModal for adding new patient
+  const handleAddPatient = () => {
+    setPatientToEdit(null); // Clear any existing patient data
+    setOpenCreateModal(true);
+  };
 
-  if (profile?._id) {
-    console.log("Dispatching fetchPatientsList with doctorId:", profile._id);
-
+  // Handle successful patient creation/update
+  const handlePatientAdded = () => {
+    // Refresh the patient list
     dispatch(fetchPatientsList());
-  }
-}, [dispatch, profile]);
-
-
-
-  // Handle form input changes
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  // Handle dialog open/close
-  const handleAddDialogOpen = () => {
-    setFormData({
-      firstName: '',
-      lastName: '',
-      phone: '',
-      email: '',
-      address: '',
-      cin: '',
-      dateOfBirth: ''
-    });
-    setIsEditing(false);
-    setOpenAddDialog(true);
-  };
-
-  const handleAddDialogClose = () => {
-    setOpenAddDialog(false);
+    setOpenCreateModal(false);
   };
 
   // Handle edit patient
   const handleEditPatient = (patient) => {
-    setFormData({
-      id: patient.id,
-      firstName: patient.firstName || '',
-      lastName: patient.lastName || '',
-      phone: patient.phone || '',
-      email: patient.email || '',
-      address: patient.address || '',
-      cin: patient.cin || '',
-      dateOfBirth: patient.dateOfBirth || ''
-    });
-    setIsEditing(true);
-    setOpenAddDialog(true);
+    setPatientToEdit(patient);
+    setOpenCreateModal(true);
   };
 
   // Handle view patient details
   const handleViewPatient = (patient) => {
     dispatch(setCurrentPatient(patient));
-    // Here you would typically navigate to a patient details page
     navigate(`/dashboard/patients/${patient._id}`);
   };
 
@@ -138,26 +98,12 @@ useEffect(() => {
     setOpenDeleteDialog(true);
   };
 
-  // Handle patient form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // if (isEditing) {
-    //   dispatch(updatePatient({ id: formData.id, patientData: formData }));
-    // } else {
-    //   dispatch(addPatient(formData));
-    // }
-    
-    handleAddDialogClose();
-  };
-
   // Handle patient deletion
   const handleDeletePatient = () => {
-    // if (patientToDelete) {
-    //   dispatch(deletePatient(patientToDelete.id));
-    //   setOpenDeleteDialog(false);
-    //   setPatientToDelete(null);
-    // }
+    // Implement delete functionality here
+    // dispatch(deletePatient(patientToDelete._id));
+    setOpenDeleteDialog(false);
+    setPatientToDelete(null);
   };
 
   // Filter patients based on search query
@@ -211,17 +157,16 @@ useEffect(() => {
               <Button 
                 variant="contained" 
                 startIcon={<PersonAddIcon />}
-                onClick={handleAddDialogOpen}
+                onClick={handleAddPatient} // Updated to use CreatePatientModal
                 sx={{
                   borderRadius: "12px",
                   padding: '8px 16px',
-
                   backgroundColor: "#0A192F",
                   textTransform: "none",
                   boxShadow: "0 4px 12px rgba(98, 0, 234, 0.)",
                   fontWeight: 600,
                   "&:hover": {
-                    backgroundColor: "##0A192F",
+                    backgroundColor: "#0A192F",
                     boxShadow: "0 6px 16px rgba(35, 29, 44, 0.3)",
                   }
                 }}
@@ -381,7 +326,7 @@ useEffect(() => {
                                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                                 }}
                               >
-                                {patient.name?.charAt(0)}
+                                {patient.firstName?.charAt(0)}{patient.lastName?.charAt(0)}
                               </Avatar>
                               <Box>
                                 <Typography variant="body1" fontWeight={550}>
@@ -393,7 +338,9 @@ useEffect(() => {
                               </Box>
                             </Box>
                           </TableCell>
-                          <TableCell align='center' >{patient.dateOfBirth.split('T')[0]} </TableCell>
+                          <TableCell align='center'>
+                            {patient.dateOfBirth ? patient.dateOfBirth.split('T')[0] : 'N/A'}
+                          </TableCell>
                           <TableCell>
                             <Typography variant="body2">{patient.phone}</Typography>
                           </TableCell>
@@ -413,52 +360,22 @@ useEffect(() => {
                             />
                           </TableCell>
                           <TableCell align="right">
-                          <Box sx={{ display: 'flex', justifyContent: 'flex-end',marginRight:'20px' , gap: 1 }}>
-                            <Tooltip title="View details">
-                              <IconButton 
-                                size="small" 
-                                onClick={() => handleViewPatient(patient)}
-                                sx={{ 
-                                  color: '#0A192F',
-                                  '&:hover': { bgcolor: 'info.lighter' }
-                                }}
-                              >
-                                <VisibilityIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-
-                            {patient.status === 'inactive' && (
-                              <>
-                                <Tooltip title="Edit patient">
-                                  <IconButton 
-                                    size="small" 
-                                    onClick={() => handleEditPatient(patient)}
-                                    sx={{ 
-                                      color: 'warning.main',
-                                      '&:hover': { bgcolor: 'warning.lighter' }
-                                    }}
-                                  >
-                                    <EditIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-
-                                <Tooltip title="Delete patient">
-                                  <IconButton 
-                                    size="small" 
-                                    onClick={() => handleDeleteConfirmation(patient)}
-                                    sx={{ 
-                                      color: 'error.main',
-                                      '&:hover': { bgcolor: 'error.lighter' }
-                                    }}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              </>
-                            )}
-                          </Box>
-                        </TableCell>
-
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginRight:'20px', gap: 1 }}>
+                              <Tooltip title="View details">
+                                <IconButton 
+                                  size="small" 
+                                  onClick={() => handleViewPatient(patient)}
+                                  sx={{ 
+                                    color: '#0A192F',
+                                    '&:hover': { bgcolor: 'info.lighter' }
+                                  }}
+                                >
+                                  <VisibilityIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              
+                            </Box>
+                          </TableCell>
                         </TableRow>
                       );
                     })
@@ -496,9 +413,9 @@ useEffect(() => {
                   backgroundColor: "#0A192F",
                   color: "#fff",
                   "&:hover": {
-                  backgroundColor: "##0A192F",
-                  boxShadow: "0 6px 16px rgba(35, 29, 44, 0.3)",
-                }
+                    backgroundColor: "#0A192F",
+                    boxShadow: "0 6px 16px rgba(35, 29, 44, 0.3)",
+                  }
                 }
               }}
             />
@@ -506,348 +423,47 @@ useEffect(() => {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Patient Dialog */}
-      <Dialog
-  open={openAddDialog}
-  onClose={handleAddDialogClose}
-  maxWidth="md"
-  fullWidth
-  sx={{
-    '& .MuiPaper-root': {
-      borderRadius: 2,
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-      backgroundColor: '#ffffff',
-    },
-  }}
->
-  <DialogTitle
-    sx={{
-      pb: 0,
-      backgroundColor: '#f5f5f5',
-      borderTopLeftRadius: 2,
-      borderTopRightRadius: 2,
-      color: '#263238',
-      fontWeight: 600,
-      fontSize: '1.25rem',
-      padding: '24px',
-    }}
-  >
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}
-    >
-      {isEditing ? 'Modifier Patient' : 'Ajouter Patient'}
-      <IconButton
-        onClick={handleAddDialogClose}
-        size="small"
-        sx={{
-          padding: 0,
-          '&:hover': {
-            backgroundColor: 'transparent',
-          },
-        }}
-      >
-        <CloseIcon sx={{ color: '#757575' }} />
-      </IconButton>
-    </Box>
-  </DialogTitle>
-  <DialogContent
-    dividers
-    sx={{
-      padding: '24px !important',
-      '& .MuiDialogContent-root': {
-        overflow: 'auto',
-      },
-    }}
-  >
-    <form onSubmit={handleSubmit}>
-      <Grid container spacing={3}>
-        {/* Personal Information Section */}
-        <Grid item xs={12}>
-          <Typography
-            variant="subtitle1"
-            sx={{
-              fontWeight: 600,
-              color: '#263238',
-              mb: 2,
-              borderBottom: '1px solid #e0e0e0',
-              paddingBottom: '8px',
-            }}
-          >
-            Informations personnelles
-          </Typography>
-        </Grid>
-        {/* First Name */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Prénom"
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            margin="normal"
-            sx={{
-              '& .MuiInputLabel-root': {
-                color: '#263238',
-              },
-              '& .MuiInput-underline:after': {
-                borderBottomColor: '#78B3CE', // Teal accent
-              },
-              '& .Mui-focused .MuiInputLabel-root': {
-                color: '#78B3CE',
-              },
-            }}
-          />
-        </Grid>
-        {/* Last Name */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Nom"
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            margin="normal"
-            sx={{
-              '& .MuiInputLabel-root': {
-                color: '#263238',
-              },
-              '& .MuiInput-underline:after': {
-                borderBottomColor: '#78B3CE',
-              },
-              '& .Mui-focused .MuiInputLabel-root': {
-                color: '#78B3CE',
-              },
-            }}
-          />
-        </Grid>
-        {/* Contact Information Section */}
-        <Grid item xs={12}>
-          <Typography
-            variant="subtitle1"
-            sx={{
-              fontWeight: 600,
-              color: '#263238',
-              mt: 4,
-              mb: 2,
-              borderBottom: '1px solid #e0e0e0',
-              paddingBottom: '8px',
-            }}
-          >
-            Informations de contact
-          </Typography>
-        </Grid>
-        {/* Email */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            margin="normal"
-            sx={{
-              '& .MuiInputLabel-root': {
-                color: '#263238',
-              },
-              '& .MuiInput-underline:after': {
-                borderBottomColor: '#78B3CE',
-              },
-              '& .Mui-focused .MuiInputLabel-root': {
-                color: '#78B3CE',
-              },
-            }}
-          />
-        </Grid>
-        {/* Phone */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Téléphone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            margin="normal"
-            sx={{
-              '& .MuiInputLabel-root': {
-                color: '#263238',
-              },
-              '& .MuiInput-underline:after': {
-                borderBottomColor: '#78B3CE',
-              },
-              '& .Mui-focused .MuiInputLabel-root': {
-                color: '#78B3CE',
-              },
-            }}
-          />
-        </Grid>
-        {/* Address */}
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Adresse"
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            margin="normal"
-            multiline
-            rows={3}
-            sx={{
-              '& .MuiInputLabel-root': {
-                color: '#263238',
-              },
-              '& .MuiInput-underline:after': {
-                borderBottomColor: '#78B3CE',
-              },
-              '& .Mui-focused .MuiInputLabel-root': {
-                color: '#78B3CE',
-              },
-            }}
-          />
-        </Grid>
-        {/* Identification Section */}
-        <Grid item xs={12}>
-          <Typography
-            variant="subtitle1"
-            sx={{
-              fontWeight: 600,
-              color: '#263238',
-              mt: 4,
-              mb: 2,
-              borderBottom: '1px solid #e0e0e0',
-              paddingBottom: '8px',
-            }}
-          >
-            Identifiants
-          </Typography>
-        </Grid>
-        {/* CIN */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="CIN"
-            name="cin"
-            value={formData.cin}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            margin="normal"
-            sx={{
-              '& .MuiInputLabel-root': {
-                color: '#263238',
-              },
-              '& .MuiInput-underline:after': {
-                borderBottomColor: '#78B3CE',
-              },
-              '& .Mui-focused .MuiInputLabel-root': {
-                color: '#78B3CE',
-              },
-            }}
-          />
-        </Grid>
-        {/* Date of Birth */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Date de Naissance"
-            name="dateOfBirth"
-            type="date"
-            value={formData.dateOfBirth}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            margin="normal"
-            InputLabelProps={{
-              shrink: true,
-            }}
-            sx={{
-              '& .MuiInputBase-input': {
-                paddingTop: '12px !important',
-                paddingBottom: '12px !important',
-              },
-              '& .MuiInputLabel-root': {
-                color: '#263238',
-              },
-              '& .MuiInput-underline:after': {
-                borderBottomColor: '#78B3CE',
-              },
-              '& .Mui-focused .MuiInputLabel-root': {
-                color: '#78B3CE',
-              },
-            }}
-          />
-        </Grid>
-       
-      </Grid>
-      <DialogActions
-        sx={{
-          justifyContent: 'flex-end',
-          pt: 2,
-          borderTop: '1px solid #e0e0e0',
-        }}
-      >
-        <Button
-          variant="outlined"
-          color="inherit"
-          onClick={handleAddDialogClose}
-          sx={{
-            borderColor: '#e0e0e0',
-            color: '#757575',
-            textTransform: 'none',
-            fontWeight: 500,
-            '&:hover': {
-              borderColor: '#78B3CE',
-            },
-          }}
-        >
-          Annuler
-        </Button>
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          sx={{
-            bgcolor: '#78B3CE',
-            '&:hover': {
-              bgcolor: '#6AAED9',
-            },
-            textTransform: 'none',
-            fontWeight: 500,
-            ml: 2,
-          }}
-        >
-          {isEditing ? 'Modifier' : 'Ajouter'}
-        </Button>
-      </DialogActions>
-    </form>
-  </DialogContent>
-</Dialog>
+      {/* Create/Edit Patient Modal */}
+      <CreatePatientModal
+        open={openCreateModal}
+        onClose={() => setOpenCreateModal(false)}
+        editPatient={patientToEdit}
+        onPatientAdded={handlePatientAdded}
+      />
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle>Confirmer la suppression</DialogTitle>
+      <Dialog
+        open={openDeleteDialog}
+        onClose={() => setOpenDeleteDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Confirmer la suppression
+        </DialogTitle>
         <DialogContent>
           <Typography>
-            Êtes-vous sûr de vouloir supprimer {patientToDelete?.name}? Cette action ne peut pas être annulée.
+            Êtes-vous sûr de vouloir supprimer le patient{' '}
+            <strong>
+              {patientToDelete?.firstName} {patientToDelete?.lastName}
+            </strong>{' '}
+            ? Cette action est irréversible.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} color="inherit">Annuler</Button>
-          <Button onClick={handleDeletePatient} color="error" variant="contained">Supprimer</Button>
+          <Button 
+            onClick={() => setOpenDeleteDialog(false)}
+            color="inherit"
+          >
+            Annuler
+          </Button>
+          <Button 
+            onClick={handleDeletePatient}
+            color="error"
+            variant="contained"
+          >
+            Supprimer
+          </Button>
         </DialogActions>
       </Dialog>
     </>

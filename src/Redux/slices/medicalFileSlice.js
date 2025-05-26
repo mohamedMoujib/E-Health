@@ -99,9 +99,15 @@ export const fetchAppointmentDetails = createAsyncThunk(
   // Async thunk for updating appointment status
 export const updateAppointmentStatus = createAsyncThunk(
     'medicalFile/updateAppointmentStatus',
-    async ({ appointmentId, status }, { rejectWithValue }) => {
+    async ({ appointmentId, status }, { rejectWithValue,getState }) => {
       try {
-        const response = await axios.put(`${process.env.REACT_APP_API_URL}/appointments/${appointmentId}/update`, { status });
+              const accessToken = getState().auth.accessToken;
+
+        const response = await axios.put(`${process.env.REACT_APP_API_URL}/appointments/${appointmentId}/update`, { status },
+          {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+        );
         return response.data.appointment;
       } catch (error) {
         console.error('Update Appointment Error:', error.response?.data || error.message);
@@ -112,11 +118,16 @@ export const updateAppointmentStatus = createAsyncThunk(
   );
   export const rescheduleAppointment = createAsyncThunk(
     'medicalFile/rescheduleAppointment',
-    async ({ appointmentId, newDate, newTime }, { rejectWithValue }) => {
+    async ({ appointmentId, newDate, newTime }, { rejectWithValue,getState }) => {
       try {
+                      const accessToken = getState().auth.accessToken;
+
         const response = await axios.put(
           `${process.env.REACT_APP_API_URL}/appointments/${appointmentId}/reschedule`,
-          { newDate, newTime }
+          { newDate, newTime },
+          {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
         );
         return response.data;
       } catch (error) {

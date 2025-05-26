@@ -199,7 +199,8 @@ const NotificationsDropdown = () => {
   const [open, setOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [toastContainer, setToastContainer] = useState(null);
-  
+      const { appointments } = useSelector(state => state.appointments); // Get appointments from Redux
+
   // Initialize toast container
   useEffect(() => {
     const container = createToastContainer();
@@ -229,7 +230,21 @@ const NotificationsDropdown = () => {
         break;
       case 'appointment':
         if (notification.relatedEntity) {
-          navigate(`/appointments/${notification.relatedEntity}`);
+          // Find the appointment in the existing list
+          const appointment = appointments.find(apt => apt._id === notification.relatedEntity);
+          
+          if (appointment) {
+            // If appointment is found, navigate with it
+            navigate(`/dashboard/Patients/${notification.sender}/appointments`, { 
+              state: { appointment } 
+            });
+          } else {
+            // If appointment is not in the list, navigate with just the ID
+            console.log('Appointment not found in current list, navigating with ID only');
+            navigate(`/dashboard/Patients/${notification.sender}/appointments`, { 
+              state: { appointmentId: notification.relatedEntity } 
+            });
+          }
         }
         break;
       case 'medical':
