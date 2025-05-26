@@ -20,33 +20,45 @@ exports.register = async (req, res) => {
     try {
         const { firstName, lastName, email, password, cin, phone, address, dateOfBirth, role, speciality } = req.body;
 
-        // Check if user exists
-        let user = await User.findOne({ email });
-        if (user) return res.status(400).json({ message: "User already exists" });
+        // Check if user exists with same email within the SAME ROLE only
+        let existingUser = await User.findOne({ email, role });
+        if (existingUser) {
+            return res.status(400).json({ 
+                message: `${role} with this email already exists` 
+            });
+        }
 
-        user = await User.findOne({ cin });
-        if (user) return res.status(400).json({ message: "User already exists" });
+        // Check if user exists with same CIN within the SAME ROLE only
+        existingUser = await User.findOne({ cin, role });
+        if (existingUser) {
+            return res.status(400).json({ 
+                message: `${role} with this CIN already exists` 
+            });
+        }
+
+        // Check if user exists with same phone within the SAME ROLE only
+        existingUser = await User.findOne({ phone, role });
+        if (existingUser) {
+            return res.status(400).json({ 
+                message: `${role} with this phone number already exists` 
+            });
+        }
 
         // Create user based on role
+        let user;
         if (role === "doctor") {
             user = new Doctor({ firstName, lastName, email, password, cin, phone, address, dateOfBirth, role, speciality });
         } else if (role === "patient") {
             user = new Patient({ firstName, lastName, email, password, cin, phone, address, dateOfBirth, role });
-        }else if (role === "admin") {
-          user = new Admin({ firstName, lastName, email, password, cin, phone, address, dateOfBirth, role });
-      }
-         else {
+        } else if (role === "admin") {
+            user = new Admin({ firstName, lastName, email, password, cin, phone, address, dateOfBirth, role });
+        } else {
             return res.status(400).json({ message: "Invalid role" });
         }
 
-        // Hash password
-       
-        ;
-
-
         await user.save();
 
-        // // Generate tokens
+        // Generate tokens
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
 
@@ -79,7 +91,7 @@ exports.login = async (req, res) => {
         // Store refresh token in HTTP-only cookie
         res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, sameSite: "Strict" });
 
-        res.json({ accessToken , role: user.role, });
+        res.json({ accessToken , role: user.role,status: user.status });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -376,10 +388,10 @@ exports.forgetPassword = async (req, res) => {
         });
 
         await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+            from: 'healora.ehealth@gmail.com',
             to: email,
-            subject: "Password Reset Request",
-            html: `<p>Click <a href="${resetLink}">here</a> to reset your password.</p>`,
+            subject: "Réinitialisation de votre mot de passe",
+            html: `<p>Cliquez <a href="${resetLink}">ici</a> pour réinitialiser votre mot de passe.</p>`,
         });
 
         res.json({ message: "Password reset email sent!" });

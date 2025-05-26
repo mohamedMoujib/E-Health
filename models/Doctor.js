@@ -23,5 +23,4 @@ const doctorSchema = new mongoose.Schema({
 });
 
 const Doctor = User.discriminator("Doctor", doctorSchema);
-
 module.exports = Doctor;

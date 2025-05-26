@@ -1,6 +1,7 @@
 const Doctor = require("../models/Doctor");
 const MedicalFile = require("../models/MedicalFile");
 const Appointment = require("../models/appointment");
+const Patient = require("../models/Patient");
 //View Doctor Details by ID
 exports.viewDoctorDetails = async (req , res) => {
     try{
@@ -128,3 +129,61 @@ exports.getDoctorsBySpeciality = async (req, res) => {
   }
 };
 
+exports.createPatientByDoctor = async (req, res) => {
+    try {
+        const { firstName, lastName, email, cin, phone, address, dateOfBirth } = req.body;
+        const doctorId = req.user.id; // ID du médecin connecté
+
+        // Generate default email if not provided
+        const patientEmail = email || `${cin}@patient.default`;
+
+        // Create new patient
+        const patient = new Patient({
+            firstName,
+            lastName,
+            email: patientEmail,
+            cin,
+            phone,
+            address,
+            dateOfBirth,
+            role: 'patient',
+            status: 'inactive',
+            createdBy: doctorId,
+            // Generate a random password (patients will reset it later)
+            password: require('crypto').randomBytes(8).toString('hex')
+        });
+
+        await patient.save();
+        const newMedicalFile = new MedicalFile({
+                patient: patient._id,
+                doctor: doctorId
+            });
+            await newMedicalFile.save({  });
+        // Return patient data without sensitive information
+        const patientData = patient.toObject();
+        delete patientData.password;
+        
+        res.status(201).json({ 
+            success: true,
+            message: 'Patient créé avec succès', 
+            patient: patientData 
+        });
+    } catch (error) {
+        console.error('Error creating patient:', error);
+        
+        // Handle duplicate key errors specifically
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern)[0];
+            const message = `Un patient avec ce ${field} existe déjà`;
+            return res.status(400).json({ 
+                success: false,
+                error: message 
+            });
+        }
+        
+        res.status(400).json({ 
+            success: false,
+            error: error.message || 'Erreur lors de la création du patient' 
+        });
+    }
+};
