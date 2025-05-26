@@ -8,7 +8,7 @@ const appointmentSchema = new Schema({
     time: { type: String, required: true }, 
     status: {
         type: String,
-        enum: ["pending", "confirmed", "canceled","completed"],
+        enum: ["pending", "confirmed", "canceled", "completed"],
         default: "pending",
         required: true
     },
@@ -20,5 +20,7 @@ const appointmentSchema = new Schema({
     }
 }, { timestamps: true });
 
-const Appointment = mongoose.model('Appointment', appointmentSchema);
+// Check if model already exists before creating it
+const Appointment = mongoose.models.Appointment || mongoose.model('Appointment', appointmentSchema);
+
 module.exports = Appointment;
