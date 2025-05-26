@@ -156,7 +156,7 @@ const users = {}; // Un objet pour stocker les OTP et leur expiration (clé = em
  
      // Contenu de l'email envoyé
      const mailOptions = {
-         from: process.env.EMAIL_USER,
+         from: "healora.ehealth@gmail.com",
          to: email,
          subject: "Code de vérification",
          text: `Votre code de vérification est : ${otp}`,
