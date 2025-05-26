@@ -1,6 +1,6 @@
 const Patient = require("../models/Patient");
 const MedicalFile = require("../models/MedicalFile");
-const Appointment = require("../models/appointment");
+const Appointment = require("../models/Appointment");
 
 // Get patient by ID
 exports.getPatientById = async (req, res) => {
