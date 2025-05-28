@@ -19,7 +19,7 @@ exports.app = app;
 const server = require("http").createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:3001","http://localhost:3002"],
+    origin: ["http://localhost:3001","https://frontend-web-erpb.onrender.com"],
     methods: ["GET", "POST"],
     credentials: true
   }
