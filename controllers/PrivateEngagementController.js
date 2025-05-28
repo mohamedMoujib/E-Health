@@ -1,5 +1,5 @@
-const PrivateEngagement = require('../models/privateEngagement');
-const Appointment = require('../models/appointment');
+const PrivateEngagement = require('../models/PrivateEngagement');
+const Appointment = require('../models/Appointment');
 
 
 

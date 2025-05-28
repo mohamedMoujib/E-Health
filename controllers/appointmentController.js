@@ -1,6 +1,6 @@
 const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
-const PrivateEngagement = require('../models/privateEngagement');
+const PrivateEngagement = require('../models/PrivateEngagement');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const admin = require('../firebase'); // Import Firebase Admin SDK
