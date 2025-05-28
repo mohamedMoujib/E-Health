@@ -10,6 +10,6 @@ const privateEngagementSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-const PrivateEngagement = mongoose.model('privateEngagement', privateEngagementSchema);
+const PrivateEngagement = mongoose.models.privateEngagement || mongoose.model('privateEngagement', privateEngagementSchema);
 
 module.exports = PrivateEngagement;
