@@ -56,11 +56,19 @@ exports.getPatientDoctors = async (req, res) => {
 //get Patients appointments
 exports.getPatientAppointments = async (req, res) => {
   try {
-      const { patientId } = req.params;
-
-      const appointments = await Appointment.find({ patient: patientId })
+      const { patientId, status } = req.params;
+      
+      if(status=="canceled"){
+      appointments = await Appointment.find({ patient: patientId,status: status })
       .populate("doctor", "name speciality")
-      .sort({ date: 1 , time: 1 });
+      .sort({ date: -1 , time: -1 })
+      .limit(10);
+      }
+      else{
+      appointments = await Appointment.find({ patient: patientId,status: status })
+      .populate("doctor", "name speciality")
+      .sort({ date: -1 , time: -1 })
+      }
 
       res.json({ appointments });
   } catch (error) {

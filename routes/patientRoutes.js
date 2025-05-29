@@ -7,7 +7,6 @@ const router = express.Router();
 router.get('/search', searchPatients);
 router.get('/:id',authMiddleware, getPatientById);
 router.get('/:id/doctors', getPatientDoctors);
-router.get('/:patientId/appointments', getPatientAppointments);
-
+router.get('/:patientId/:status/appointments', getPatientAppointments);
 
 module.exports = router;
