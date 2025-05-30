@@ -50,7 +50,7 @@ export const initializeSocket = (user) => {
   }
 
   console.log('Initializing socket connection for user:', user._id);
-  socketInstance = io("http://localhost:3000", {
+  socketInstance = io("https://e-health-1.onrender.com", {
     withCredentials: true,
     auth: { userId: user._id },
     reconnection: true,
