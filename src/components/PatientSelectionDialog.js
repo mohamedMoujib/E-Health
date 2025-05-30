@@ -69,7 +69,7 @@ const PatientSelectionDialog = ({ open, onClose, onSelectPatient }) => {
 
   const handleSelectPatient = (patient) => {
     if (!patient?._id) {
-      console.error("Invalid patient selected");
+      console.error("Patient sélectionné non valide");
       return;
     }
     onSelectPatient(patient);
@@ -83,11 +83,11 @@ const PatientSelectionDialog = ({ open, onClose, onSelectPatient }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Select a Patient</DialogTitle>
+      <DialogTitle>Sélectionnez un patient</DialogTitle>
       <DialogContent dividers>
         <TextField
           fullWidth
-          placeholder="Search patients..."
+          placeholder="Sélectionnez un patient..."
           variant="outlined"
           size="small"
           value={searchQuery}
@@ -113,11 +113,11 @@ const PatientSelectionDialog = ({ open, onClose, onSelectPatient }) => {
           </Box>
         ) : error ? (
           <Typography color="error" sx={{ p: 2 }}>
-            {error || 'Error loading data'}
+            {error || 'Erreur de chargement des données'}
           </Typography>
         ) : filteredPatients.length === 0 ? (
           <Typography sx={{ p: 2, color: 'text.secondary', textAlign: 'center' }}>
-            {patientsWithoutChats.length === 0 ? 'No patients available without existing chats' : 'No matching patients found'}
+            {patientsWithoutChats.length === 0 ? 'Aucun patient disponible sans conversation existante' : 'Aucun patient correspondant trouvé'}
           </Typography>
         ) : (
           <List sx={{ pt: 0 }}>
@@ -148,12 +148,12 @@ const PatientSelectionDialog = ({ open, onClose, onSelectPatient }) => {
                 <ListItemText 
                   primary={
                     <Typography variant="subtitle1" fontWeight={600}>
-                      {`${patient.firstName || ''} ${patient.lastName || ''}`.trim() || 'Unknown Patient'}
+                      {`${patient.firstName || ''} ${patient.lastName || ''}`.trim() || 'Patient inconnu'}
                     </Typography>
                   }
                   secondary={
                     <Typography variant="body2" color="text.secondary">
-                      {patient.email || patient.phone || 'No contact info'}
+                      {patient.email || patient.phone || 'Aucune information de contact'}
                     </Typography>
                   }
                 />
@@ -164,7 +164,7 @@ const PatientSelectionDialog = ({ open, onClose, onSelectPatient }) => {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="primary">
-          Cancel
+          Annuler
         </Button>
       </DialogActions>
     </Dialog>

@@ -38,7 +38,7 @@ const menuItems = [
   { key: '4', icon: <FileTextOutlined />, label: 'Articles', link: '/dashboard/Articles' },
   { key: '5', icon: <CalendarOutlined />, label: 'Agenda', link: '/dashboard/Agenda' },
   { key: '6', icon: <MessageOutlined />, label: 'Chats', link: '/dashboard/Chats' },
-  { key: 'profile', icon: <UserOutlined />, label: 'Profile', link: '/dashboard/Profile' },
+  { key: 'profile', icon: <UserOutlined />, label: 'Profil', link: '/dashboard/Profile' },
 ];
 
 const Dashboard = () => {
@@ -126,13 +126,13 @@ const Dashboard = () => {
       items={[
         {
           key: 'profile',
-          label: <Link to="/dashboard/Profile">Profile</Link>,
+          label: <Link to="/dashboard/Profile">Profil</Link>,
           icon: <UserOutlined />,
           onClick: () => setSelectedKey('profile'),
         },
         {
           key: 'logout',
-          label: <span onClick={logout}>Logout</span>,
+          label: <span onClick={logout}>Se déconnecter</span>,
           icon: <UploadOutlined />,
         },
       ]}
@@ -265,7 +265,7 @@ const Dashboard = () => {
               opacity: 0.7,
             }}
           >
-            © 2025 Haouech rights reserved
+            © 2025 Healora rights reserved
           </Typography>
         </Footer>
       </Layout>

@@ -434,10 +434,10 @@ const Chats = () => {
     yesterday.setDate(yesterday.getDate() - 1);
     
     if (messageDate.toDateString() === today.toDateString()) {
-      return `Today at ${format(messageDate, 'HH:mm')}`;
+      return `Aujourd'hui à ${format(messageDate, 'HH:mm')}`;
     }
     else if (messageDate.toDateString() === yesterday.toDateString()) {
-      return `Yesterday at ${format(messageDate, 'HH:mm')}`;
+      return `Hier à ${format(messageDate, 'HH:mm')}`;
     }
     else {
       return format(messageDate, 'MMM d, yyyy , HH:mm');
@@ -502,7 +502,7 @@ const Chats = () => {
             </Typography>
             <SearchField
               fullWidth
-              placeholder="Search contacts..."
+              placeholder="Rechercher contacts..."
               variant="outlined"
               size="small"
               value={searchQuery}
@@ -533,7 +533,7 @@ const Chats = () => {
                 }
               }}
             >
-              New Conversation
+              Nouvelle conversation
             </Button>
           </SidebarHeader>
           
@@ -548,7 +548,7 @@ const Chats = () => {
               </Typography>
             ) : filteredChats.length === 0 ? (
               <EmptyState>
-                <Typography variant="body2">No conversations found</Typography>
+                <Typography variant="body2">Aucune conversation trouvée</Typography>
               </EmptyState>
             ) : (
               filteredChats.map((chat) => {
@@ -600,7 +600,7 @@ const Chats = () => {
                             maxWidth: '180px'
                           }}
                         >
-                          {chat?.lastMessage?.content || 'No messages yet'}
+                          {chat?.lastMessage?.content || 'Aucun message pour le moment'}
                         </Typography>
                       }
                     />
@@ -652,10 +652,10 @@ const Chats = () => {
                 ) : messages.length === 0 ? (
                   <EmptyState>
                     <Typography variant="h6" sx={{ mb: 1, color: '#0A192F' }}>
-                      No messages yet
+                      Aucun message pour le moment
                     </Typography>
                     <Typography variant="body2">
-                      Send a message to start the conversation
+                      Envoyez un message pour commencer la conversation
                     </Typography>
                   </EmptyState>
                 ) : (
@@ -668,7 +668,7 @@ const Chats = () => {
                         <Box sx={{ maxWidth: '100%', borderRadius: '12px', overflow: 'hidden' }}>
                           <img 
                             src={message.content} 
-                            alt="Sent content" 
+                            alt="Contenu envoyé" 
                             style={{ 
                               maxWidth: '100%', 
                               maxHeight: '300px',
@@ -740,7 +740,7 @@ const Chats = () => {
                     size="small"
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder={selectedImage ? "Add a caption or send without text..." : "Type your message..."}
+                    placeholder={selectedImage ? "Ajoutez une légende ou envoyez sans texte..." : "Écrivez votre message..."}
                     sx={{ flexGrow: 1, mr: 1 }}
                   />
                   <IconButton
@@ -779,10 +779,10 @@ const Chats = () => {
                 <SearchIcon sx={{ fontSize: 60, color: alpha('#0A192F', 0.3) }} />
               </Box>
               <Typography variant="h6" sx={{ mb: 1, color: '#0A192F' }}>
-                Select a conversation
+                Sélectionnez une conversation
               </Typography>
               <Typography variant="body2" sx={{ mb: 3, maxWidth: '60%', textAlign: 'center' }}>
-                Choose an existing conversation or start a new one by clicking the button below
+                Choisissez une conversation existante ou créez-en une nouvelle en cliquant ci-dessous
               </Typography>
               <Button
                 variant="contained"
@@ -798,7 +798,7 @@ const Chats = () => {
                   }
                 }}
               >
-                Start New Chat
+                Nouvelle discussion
               </Button>
             </EmptyState>
           )}

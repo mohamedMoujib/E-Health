@@ -406,7 +406,7 @@ const NotificationsDropdown = () => {
         const newNotification = {
           _id: payload.notificationId || Date.now().toString(),
           notificationId: payload.notificationId || Date.now().toString(),
-          title: payload.title || 'New Message',
+          title: payload.title || 'Nouveau message',
           content: payload.content || '',
           createdAt: payload.createdAt || Date.now(),
           isRead: false,
@@ -498,7 +498,7 @@ const NotificationsDropdown = () => {
             size="small"
             ghost
           >
-            Mark all as read
+            Tout marquer comme lu
           </Button>
         )}
       </div>
@@ -547,7 +547,7 @@ const NotificationsDropdown = () => {
                         size="small"
                         icon={<DeleteOutlined />}
                         onClick={(e) => deleteNotificationHandler(e, item._id || item.notificationId)}
-                        title="Delete notification"
+                        title="Supprimer la notification"
                       />,
                     ]}
                   >
@@ -583,7 +583,7 @@ const NotificationsDropdown = () => {
         </>
       ) : (
         <Empty 
-          description="No notifications yet" 
+          description="Aucune notification pour le moment" 
           style={{ padding: '40px 0' }}
           image={Empty.PRESENTED_IMAGE_SIMPLE} 
         />
