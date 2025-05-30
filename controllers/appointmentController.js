@@ -290,14 +290,38 @@ exports.UpdateAppointmentStatus = async (req, res) => {
     session.startTransaction();
     
     try {
+        console.log('Request params:', req.params);
+        console.log('Request body:', req.body);
+        console.log('User from token:', req.user);
+
         const { appointmentId } = req.params;
         const { status } = req.body;
         const userId = req.user?.id;
 
-        const allowedStatus = ["pending", "confirmed", "canceled","completed"];
+        // Validate required fields
+        if (!appointmentId) {
+            return res.status(400).json({message: "Appointment ID is required"});
+        }
+
+        if (!status) {
+            return res.status(400).json({message: "Status is required"});
+        }
+
+        if (!userId) {
+            return res.status(401).json({message: "User not authenticated"});
+        }
+
+        const allowedStatus = ["pending", "confirmed", "canceled", "completed"];
         if(!allowedStatus.includes(status)) {
             return res.status(400).json({message: "Invalid status value"});
         }
+
+        // Validate appointmentId format
+        if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+            return res.status(400).json({message: "Invalid appointment ID format"});
+        }
+        
+        console.log('Searching for appointment with ID:', appointmentId);
         
         const appointment = await Appointment.findByIdAndUpdate(
             appointmentId, 
@@ -305,21 +329,38 @@ exports.UpdateAppointmentStatus = async (req, res) => {
             { new: true, session }
         ).populate('doctor patient', 'firstName lastName');
         
-        if(!appointment) return res.status(404).json({ message: "Appointment not found" });
+        if(!appointment) {
+            console.log('Appointment not found for ID:', appointmentId);
+            return res.status(404).json({ message: "Appointment not found" });
+        }
+
+        console.log('Appointment found:', appointment);
 
         // Get user roles to determine who made the update
         const user = await User.findById(userId).select('role').lean();
         if (!user) {
+            console.log('User not found for ID:', userId);
             return res.status(404).json({ message: "User not found" });
         }
 
+        console.log('User making update:', user);
+
         // Determine notification recipient based on who made the update
         let recipientId, notificationTitle, notificationContent;
+        
+        // Check if appointment has valid date
+        if (!appointment.date) {
+            console.error('Appointment has no date:', appointment);
+            return res.status(400).json({ message: "Appointment date is missing" });
+        }
+
         const formattedDate = new Date(appointment.date).toLocaleDateString('en-US', {
             weekday: 'long',
             month: 'long',
             day: 'numeric'
         });
+        
+        console.log('Formatted date:', formattedDate);
         
         if (user.role === 'doctor' && userId.toString() === appointment.doctor._id.toString()) {
             // Doctor made the update, notify patient
@@ -331,6 +372,27 @@ exports.UpdateAppointmentStatus = async (req, res) => {
             recipientId = appointment.doctor._id;
             notificationTitle = `Statut du rendez-vous mis à jour`;
             notificationContent = `Le rendez-vous avec ${appointment.patient.lastName} ${appointment.patient.firstName} le ${formattedDate} à ${appointment.time} a été ${getStatusTranslation(status)}`;
+        }
+        
+        console.log('Notification recipient:', recipientId);
+        console.log('Notification content:', notificationContent);
+        
+        // Check if getStatusTranslation function exists and works
+        let translatedStatus;
+        try {
+            translatedStatus = getStatusTranslation(status);
+            console.log('Status translation:', translatedStatus);
+        } catch (translationError) {
+            console.error('Status translation error:', translationError);
+            // Fallback to original status if translation fails
+            translatedStatus = status;
+        }
+
+        // Update notification content with safe translation
+        if (user.role === 'doctor' && userId.toString() === appointment.doctor._id.toString()) {
+            notificationContent = `Votre rendez-vous avec Dr ${appointment.doctor.lastName} le ${formattedDate} à ${appointment.time} a été ${translatedStatus}`;
+        } else {
+            notificationContent = `Le rendez-vous avec ${appointment.patient.lastName} ${appointment.patient.firstName} le ${formattedDate} à ${appointment.time} a été ${translatedStatus}`;
         }
         
         // Create notification entry
@@ -345,44 +407,75 @@ exports.UpdateAppointmentStatus = async (req, res) => {
             entityModel: 'Appointment'
         });
         
+        console.log('Saving notification:', notification);
         await notification.save({ session });
+        console.log('Notification saved successfully');
         
         // Get socketio instance
         const io = req.app.get("socketio");
+        console.log('Socket.io instance:', !!io);
         
         // Send real-time notification if receiver is connected
-        const recipientSocketId = socketManager.getSocketId(recipientId);
+        let recipientSocketId = null;
+        try {
+            if (typeof socketManager !== 'undefined' && socketManager.getSocketId) {
+                recipientSocketId = socketManager.getSocketId(recipientId);
+                console.log('Recipient socket ID:', recipientSocketId);
+            } else {
+                console.log('socketManager not available or getSocketId method missing');
+            }
+        } catch (socketError) {
+            console.error('Socket manager error:', socketError);
+        }
         
-        if (recipientSocketId) {
-            io.to(recipientSocketId).emit('newNotification', {
-                notificationId: notification._id.toString(),
-                title: notificationTitle,
-                content: notificationContent,
-                type: 'appointment',
-                appointmentId: appointmentId,
-                createdAt: notification.createdAt
-            });
+        if (recipientSocketId && io) {
+            try {
+                io.to(recipientSocketId).emit('newNotification', {
+                    notificationId: notification._id.toString(),
+                    title: notificationTitle,
+                    content: notificationContent,
+                    type: 'appointment',
+                    appointmentId: appointmentId,
+                    createdAt: notification.createdAt
+                });
+                console.log('Real-time notification sent');
+            } catch (socketEmitError) {
+                console.error('Socket emit error:', socketEmitError);
+            }
         }
         
         // Send push notification if receiver is not connected via websocket
         let notificationResult = null;
         
         if (!recipientSocketId) {
-            const isDoctor = recipientId.toString() === appointment.doctor._id.toString();
-            
-            notificationResult = await sendAppointmentStatusNotification({
-                appointment,
-                status,
-                recipientId,
-                initiatorId: userId,
-                isDoctor
-            }).catch(err => {
-                console.error('Notification error:', err);
-                return { error: err.message, recipient: isDoctor ? 'doctor' : 'patient' };
-            });
+            try {
+                const isDoctor = recipientId.toString() === appointment.doctor._id.toString();
+                
+                // Check if sendAppointmentStatusNotification function exists
+                if (typeof sendAppointmentStatusNotification === 'function') {
+                    notificationResult = await sendAppointmentStatusNotification({
+                        appointment,
+                        status,
+                        recipientId,
+                        initiatorId: userId,
+                        isDoctor
+                    }).catch(err => {
+                        console.error('Push notification error:', err);
+                        return { error: err.message, recipient: isDoctor ? 'doctor' : 'patient' };
+                    });
+                    console.log('Push notification result:', notificationResult);
+                } else {
+                    console.log('sendAppointmentStatusNotification function not available');
+                    notificationResult = { status: 'push_notification_unavailable' };
+                }
+            } catch (pushNotificationError) {
+                console.error('Push notification setup error:', pushNotificationError);
+                notificationResult = { error: pushNotificationError.message };
+            }
         }
 
         await session.commitTransaction();
+        console.log('Transaction committed successfully');
         
         res.json({ 
             message: "Appointment status updated successfully", 
@@ -391,13 +484,35 @@ exports.UpdateAppointmentStatus = async (req, res) => {
         });
 
     } catch (error) {
+        console.error('Full error details:', error);
+        console.error('Error stack:', error.stack);
+        
         await session.abortTransaction();
-        res.status(500).json({ message: "Server error", error });
+        
+        // Send more specific error information
+        res.status(500).json({ 
+            message: "Server error", 
+            error: error.message,
+            errorType: error.constructor.name,
+            // Only include stack in development
+            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+        });
     } finally {
         session.endSession();
     }
 }
 
+// Helper function - make sure this exists in your code
+function getStatusTranslation(status) {
+    const translations = {
+        'pending': 'en attente',
+        'confirmed': 'confirmé',
+        'canceled': 'annulé',
+        'completed': 'terminé'
+    };
+    
+    return translations[status] || status;
+}
 //reschedule appointment
 exports.RescheduleAppointment = async (req, res) => {
     const session = await mongoose.startSession();
