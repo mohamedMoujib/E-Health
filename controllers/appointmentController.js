@@ -324,13 +324,13 @@ exports.UpdateAppointmentStatus = async (req, res) => {
         if (user.role === 'doctor' && userId.toString() === appointment.doctor._id.toString()) {
             // Doctor made the update, notify patient
             recipientId = appointment.patient._id;
-            notificationTitle = `Appointment status updated`;
-            notificationContent = `Your appointment with Dr. ${appointment.doctor.firstName} ${appointment.doctor.lastName} on ${formattedDate} at ${appointment.time} has been ${status}`;
+            notificationTitle = `Statut du rendez-vous mis à jour`;
+            notificationContent = `Votre rendez-vous avec Dr ${appointment.doctor.lastName} le ${formattedDate} à ${appointment.time} a été ${getStatusTranslation(status)}`;
         } else {
             // Patient or admin made the update, notify doctor
             recipientId = appointment.doctor._id;
-            notificationTitle = `Appointment status updated`;
-            notificationContent = `Your appointment with ${appointment.patient.firstName} ${appointment.patient.lastName} on ${formattedDate} at ${appointment.time} has been ${status}`;
+            notificationTitle = `Statut du rendez-vous mis à jour`;
+            notificationContent = `Le rendez-vous avec ${appointment.patient.lastName} ${appointment.patient.firstName} le ${formattedDate} à ${appointment.time} a été ${getStatusTranslation(status)}`;
         }
         
         // Create notification entry
