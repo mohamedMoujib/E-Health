@@ -45,7 +45,7 @@ exports.searchDoctors = async (req, res) => {
 // List All Doctors
 exports.listAllDoctors = async (req, res) => {
     try {
-      const doctors = await Doctor.find();
+      const doctors = await Doctor.find({status: "valide"});
       res.json(doctors);
     } catch (error) {
       res.status(500).json({ message: error.message });
