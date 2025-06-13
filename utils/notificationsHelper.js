@@ -24,7 +24,7 @@ async function sendChatNotification({
     }
 
     const senderName = `${sender.firstName} ${sender.lastName}`.trim();
-    const notificationTitle = `New message from ${senderName || 'User'}`;
+    const notificationTitle = `Nouveau message de ${senderName || 'User'}`;
     const notificationBody = message.length > 100 
       ? `${message.substring(0, 100)}...` 
       : message;
@@ -128,8 +128,8 @@ async function sendAppointmentNotification({
     // Create notification title and content based on user roles
     const initiatorName = `${initiator.firstName} ${initiator.lastName}`.trim();
     const notificationTitle = initiator.role === 'doctor' 
-      ? `Appointment scheduled with Dr. ${initiatorName}`
-      : `New appointment with ${initiatorName}`;
+      ? `Rendez-vous programmé par Dr. ${initiatorName}`
+      : `Neaveau rendez-vous avec ${initiatorName}`;
     
     const notificationBody = `${formattedDate} at ${appointment.time} - ${appointment.type} appointment`;
     
