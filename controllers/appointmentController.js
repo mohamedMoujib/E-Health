@@ -162,13 +162,13 @@ exports.bookAppointment = async (req, res) => {
 
         // Créer le rendez-vous
         const appointment = new Appointment({
-            doctor: finalDoctorId,
-            patient: finalPatientId,
-            date,
-            time,
-            type,
-            status: "pending"
-        });
+    doctor: finalDoctorId,
+    patient: finalPatientId,
+    date,
+    time,
+    type,
+    status: userRole === "doctor" ? "confirmed" : "pending"
+});
 
         await appointment.save({ session });
 
